@@ -19,6 +19,13 @@ def get_mistral_client():
     except Exception:
         pass
 
+    # Try v2.x SDK layout
+    try:
+        from mistralai.client import Mistral
+        return Mistral(api_key=api_key.strip())
+    except Exception:
+        pass
+
     # Try legacy client
     try:
         from mistralai.client import MistralClient
