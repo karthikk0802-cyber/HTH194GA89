@@ -116,9 +116,11 @@ export const api = {
   toggleDocument: (docId) => request(`/admin/docs/toggle/${docId}`, { method: 'POST' }),
   deleteDocument: (docId) => request(`/admin/docs/${docId}`, { method: 'DELETE' }),
   getFeedbackList: () => request('/admin/feedback'),
-  uploadDocument: async (file) => {
+  approveDocument: (docId) => request(`/admin/docs/approve/${docId}`, { method: 'POST' }),
+  uploadDocument: async (file, owner = '') => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('owner', owner);
     const res = await fetch(`${API_BASE}/admin/docs/upload`, {
       method: 'POST',
       body: formData

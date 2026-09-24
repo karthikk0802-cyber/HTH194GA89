@@ -1,7 +1,7 @@
 def handle_voice_interaction(voice_transcript, mode):
     """
     Simulated voice STT/TTS handler.
-    In a full production build, this would use a WebRTC Streamlit component or whisper API.
+    In a full production build, this would use a WebRTC voice component or whisper API.
     Provides graceful degradation as per VOICE-01.
     """
     if not voice_transcript:

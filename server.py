@@ -724,7 +724,10 @@ def list_documents():
                 "role": d.role,
                 "status": d.status,
                 "chunk_count": d.chunk_count,
-                "uploaded_at": d.uploaded_at.isoformat() if d.uploaded_at else None
+                "uploaded_at": d.uploaded_at.isoformat() if d.uploaded_at else None,
+                "owner": getattr(d, "owner", "") or "",
+                "version": getattr(d, "version", 1) or 1,
+                "review_after": d.review_after.isoformat() if getattr(d, "review_after", None) else None
             }
             for d in docs
         ]
@@ -738,8 +741,16 @@ def toggle_document_status(docId: int):
         doc = db.query(DocumentModel).filter(DocumentModel.id == docId).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
+        if doc.status == "draft":
+            raise HTTPException(status_code=400, detail="Draft must be approved, not toggled")
         doc.status = "inactive" if doc.status == "active" else "active"
         db.commit()
+        try:
+            from services.embedding import set_document_status
+            set_document_status(doc.id, doc.chunk_count, doc.status,
+                                {"title": doc.title, "role": doc.role})
+        except Exception as e:
+            print("ChromaDB toggle warning:", e)
         return {"id": doc.id, "status": doc.status}
     finally:
         db.close()
@@ -762,38 +773,66 @@ def delete_document(docId: int):
         db.close()
 
 @app.post("/api/admin/docs/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...), owner: str = Form("")):
     file_bytes = await file.read()
     text = extract_text(file_bytes, file.filename)
     meta = extract_metadata_from_text(text)
     chunks = chunk_text(text)
-    
+
     db = SessionLocal()
     try:
         new_doc = DocumentModel(
             filename=file.filename,
             title=meta["title"],
             role=meta["role"],
-            chunk_count=len(chunks)
+            status="draft",
+            chunk_count=len(chunks),
+            owner=(owner or "").strip()
         )
         db.add(new_doc)
         db.commit()
         db.refresh(new_doc)
-        
-        # ChromaDB index
+
+        # ChromaDB index (draft: invisible to retrieval until approved)
         ids = [f"doc_{new_doc.id}_chunk_{i}" for i in range(len(chunks))]
-        metadatas = [{"doc_id": str(new_doc.id), "title": meta["title"], "role": meta["role"]} for _ in chunks]
+        metadatas = [{"doc_id": str(new_doc.id), "title": meta["title"], "role": meta["role"], "status": "draft"} for _ in chunks]
         add_chunks_to_chroma(chunks, metadatas, ids)
-        
+
         return {
             "success": True,
             "document": {
                 "id": new_doc.id,
                 "title": new_doc.title,
                 "role": new_doc.role,
-                "chunk_count": new_doc.chunk_count
+                "chunk_count": new_doc.chunk_count,
+                "status": new_doc.status,
+                "owner": new_doc.owner,
+                "version": new_doc.version
             }
         }
+    finally:
+        db.close()
+
+@app.post("/api/admin/docs/approve/{docId}")
+def approve_document(docId: int, admin: str = Depends(_admin_guard)):
+    """Review gate: draft -> active. New endpoint, guarded from day one."""
+    from datetime import timedelta
+    from services.embedding import set_document_status
+    db = SessionLocal()
+    try:
+        doc = db.query(DocumentModel).filter(DocumentModel.id == docId).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        doc.status = "active"
+        doc.review_after = datetime.utcnow() + timedelta(days=90)
+        db.commit()
+        try:
+            set_document_status(doc.id, doc.chunk_count, "active",
+                                {"title": doc.title, "role": doc.role})
+        except Exception as e:
+            print("ChromaDB approve warning:", e)
+        return {"id": doc.id, "status": doc.status,
+                "review_after": doc.review_after.isoformat() if doc.review_after else None}
     finally:
         db.close()
 

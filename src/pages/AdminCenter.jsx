@@ -8,6 +8,7 @@ export default function AdminCenter() {
   
   // Upload state
   const [uploadFile, setUploadFile] = useState(null);
+  const [uploadOwner, setUploadOwner] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState('');
 
@@ -48,6 +49,15 @@ export default function AdminCenter() {
     }
   };
 
+  const handleApproveDoc = async (docId) => {
+    try {
+      await api.approveDocument(docId);
+      fetchData();
+    } catch (err) {
+      alert('Error approving document: ' + err.message);
+    }
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!uploadFile) return;
@@ -55,9 +65,10 @@ export default function AdminCenter() {
     setUploading(true);
     setUploadSuccess('');
     try {
-      const res = await api.uploadDocument(uploadFile);
-      setUploadSuccess(`Successfully ingested '${res.document.title}' (${res.document.chunk_count} chunks embedded into ChromaDB).`);
+      const res = await api.uploadDocument(uploadFile, uploadOwner);
+      setUploadSuccess(`'${res.document.title}' saved as draft (${res.document.chunk_count} chunks). Review and Approve to activate in RAG.`);
       setUploadFile(null);
+      setUploadOwner('');
       fetchData();
     } catch (err) {
       alert('Upload failed: ' + err.message);
@@ -111,7 +122,7 @@ export default function AdminCenter() {
 
       {/* Document Upload Card */}
       <div className="glass-card" style={{ marginBottom: '28px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Ingest New Knowledge Base Document</h3>
+        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Ingest New Knowledge Base Document (lands as draft)</h3>
         <form onSubmit={handleUploadSubmit} style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="file"
@@ -127,13 +138,27 @@ export default function AdminCenter() {
               minWidth: '260px'
             }}
           />
+          <input
+            type="text"
+            placeholder="Owning team (e.g. SecOps)"
+            value={uploadOwner}
+            onChange={(e) => setUploadOwner(e.target.value)}
+            style={{
+              padding: '10px',
+              background: 'rgba(15, 23, 42, 0.7)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)',
+              minWidth: '200px'
+            }}
+          />
           <button
             type="submit"
             className="btn btn-primary"
             style={{ padding: '12px 28px' }}
             disabled={uploading || !uploadFile}
           >
-            {uploading ? <div className="spinner"></div> : '📤 Extract, Chunk & Index into ChromaDB'}
+            {uploading ? <div className="spinner"></div> : '📤 Extract, Chunk & Stage as Draft'}
           </button>
         </form>
 
@@ -156,6 +181,7 @@ export default function AdminCenter() {
                 <th>Role Scope</th>
                 <th>Embedded Chunks</th>
                 <th>RAG Status</th>
+                <th>Owner / Version</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -172,12 +198,28 @@ export default function AdminCenter() {
                   </td>
                   <td>{doc.chunk_count} chunks</td>
                   <td>
-                    <span className={`badge ${doc.status === 'active' ? 'badge-emerald' : 'badge-gray'}`}>
+                    <span className={`badge ${doc.status === 'active' ? 'badge-emerald' : doc.status === 'draft' ? 'badge-amber' : 'badge-gray'}`}>
                       {doc.status}
                     </span>
+                    {doc.review_after && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>review by {doc.review_after.split('T')[0]}</div>
+                    )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ fontSize: '12px' }}>{doc.owner || '—'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>v{doc.version || 1}</div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {doc.status === 'draft' && (
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '4px 10px', fontSize: '11px' }}
+                          onClick={() => handleApproveDoc(doc.id)}
+                        >
+                          Approve
+                        </button>
+                      )}
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '4px 10px', fontSize: '11px' }}
