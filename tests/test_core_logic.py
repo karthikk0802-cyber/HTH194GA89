@@ -357,3 +357,20 @@ def test_adaptive_quiz_generator_diversity():
     assert "question" in quiz_sec
     assert quiz_sec["question"] != ""
 
+
+def test_quiz_session_twenty_unique_no_repeats():
+    """20-question sessions: full count, unique questions, valid options (offline bank)."""
+    from services.quiz_generator import generate_quiz_session
+
+    topics = ["Company Basics", "Security & Compliance", "Git Workflow",
+              "Tools & Workflows", "Architecture Standards", "Deployment & CI/CD",
+              "Product Triage", "Sales Playbook"]
+    for t in topics:
+        s = generate_quiz_session(t, count=20, seed=7)
+        assert s["complete"] is True, f"{t}: session incomplete ({s['count']}/20)"
+        assert s["count"] == 20, f"{t}: got {s['count']} questions"
+        qs = [q["question"] for q in s["questions"]]
+        assert len(set(qs)) == 20, f"{t}: repeats detected"
+        for q in s["questions"]:
+            assert len(q["options"]) == 4
+            assert q["correct_answer"] in q["options"]

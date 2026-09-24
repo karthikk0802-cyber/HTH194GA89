@@ -479,6 +479,15 @@ def get_quiz_question(topic: str, role: Optional[str] = "all", difficulty: Optio
     quiz["validation_passed"] = is_valid
     return quiz
 
+@app.get("/api/quiz/session")
+def get_quiz_session(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = "Beginner", count: Optional[int] = 20):
+    """20-question no-repeat session. Single-question /api/quiz/generate untouched."""
+    from services.quiz_generator import generate_quiz_session
+    session = generate_quiz_session(topic, role=role or "all", difficulty=difficulty or "Beginner", count=count or 20)
+    for q in session["questions"]:
+        q["validation_passed"] = validate_quiz_question(q, q.get("evidence_quote", ""))
+    return session
+
 @app.post("/api/quiz/submit")
 def submit_quiz_answer(req: QuizSubmitRequest):
     is_correct = is_answer_match(req.selectedAnswer, req.correctAnswer)
@@ -1021,6 +1030,24 @@ def v2_quiz_generate(topic: str, role: Optional[str] = "all", userId: Optional[s
         finally:
             db.close()
     return generate_personalized_quiz(topic, role=role or "all", mastery_score=mastery)
+
+@app.get("/api/v2/quiz/session")
+def v2_quiz_session(topic: str, role: Optional[str] = "all", userId: Optional[str] = None, count: Optional[int] = 20):
+    """20-question no-repeat session at auto difficulty. Single-question v2 generate untouched."""
+    from services.quiz_generator import generate_quiz_session
+    mastery = 0
+    if userId:
+        db = SessionLocal()
+        try:
+            st = db.query(UserTopicState).filter(
+                UserTopicState.user_id == userId, UserTopicState.topic_id == topic
+            ).first()
+            mastery = st.mastery_score if st else 0
+        finally:
+            db.close()
+    session = generate_quiz_session(topic, role=role or "all", difficulty=pick_difficulty(mastery), count=count or 20)
+    session["personalization"] = {"reason": f"mastery {mastery} -> {session['difficulty']}", "target_difficulty": session["difficulty"]}
+    return session
 
 @app.get("/api/taxonomy")
 def get_taxonomy():

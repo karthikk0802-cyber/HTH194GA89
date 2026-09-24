@@ -58,6 +58,9 @@ export const api = {
   // Quizzes & Remediation
   generateQuiz: (topic, role = 'all', difficulty = 'Beginner') =>
     request(`/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&difficulty=${encodeURIComponent(difficulty)}`),
+
+  startQuizSession: (topic, role = 'all', difficulty = 'Beginner', count = 20) =>
+    request(`/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&difficulty=${encodeURIComponent(difficulty)}&count=${encodeURIComponent(count)}`),
   
   submitQuiz: (userId, topicId, selectedAnswer, correctAnswer) =>
     request('/quiz/submit', {
@@ -148,6 +151,8 @@ export const api = {
     request(`/v2/quiz/next?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
   generatePersonalizedQuiz: (topic, role = 'all', userId = '') =>
     request(`/v2/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`),
+  startPersonalizedSession: (topic, role = 'all', userId = '', count = 20) =>
+    request(`/v2/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}&count=${encodeURIComponent(count)}`),
 
   // Resume profiles (admin-only)
   uploadResume: async (token, userId, role, file) => {

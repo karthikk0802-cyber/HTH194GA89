@@ -2,8 +2,9 @@ import json
 import random
 import time
 import re
-from services.llm import generate_completion, clean_json_response
+from services.llm import generate_completion, clean_json_response, get_mistral_client
 from services.embedding import search_chroma
+from services.question_bank import BANK_EXTRA
 
 # Pre-curated diverse bank of fallback questions across all topics & levels
 FALLBACK_QUIZ_BANK = {
@@ -199,6 +200,123 @@ FALLBACK_QUIZ_BANK = {
         }
     ]
 }
+
+def _normalize_topic_key(topic_title):
+    """Map a human topic title to the static bank key. Pure rename, same rules."""
+    topic_key = topic_title.lower().replace(" & ", "_").replace(" ", "_").replace("-", "_").replace("/", "_")
+    if topic_key == "security_compliance":
+        topic_key = "security"
+    elif topic_key == "tools_workflows":
+        topic_key = "tools"
+    elif "deploy" in topic_key:
+        topic_key = "deployment"
+    elif "architecture" in topic_key:
+        topic_key = "architecture"
+    elif "git" in topic_key:
+        topic_key = "git_workflow"
+    elif "company" in topic_key or "culture" in topic_key or "basics" in topic_key:
+        topic_key = "company_basics"
+    elif "sales" in topic_key:
+        topic_key = "sales_playbook"
+    elif "product" in topic_key:
+        topic_key = "product_triage"
+    return topic_key
+
+
+def _norm_question(q):
+    return re.sub(r"\s+", " ", (q or "").lower().strip())
+
+
+def _full_static_bank(topic_key):
+    """Base bank + expanded bank for a key, deduplicated by question text."""
+    seen = set()
+    out = []
+    for item in list(FALLBACK_QUIZ_BANK.get(topic_key, [])) + list(BANK_EXTRA.get(topic_key, [])):
+        nq = _norm_question(item.get("question", ""))
+        if nq and nq not in seen:
+            seen.add(nq)
+            out.append(item)
+    if not out:
+        for item in list(FALLBACK_QUIZ_BANK.get("company_basics", [])) + list(BANK_EXTRA.get("company_basics", [])):
+            nq = _norm_question(item.get("question", ""))
+            if nq and nq not in seen:
+                seen.add(nq)
+                out.append(item)
+    return out
+
+
+def generate_quiz_session(topic_title, role="all", difficulty="Beginner", count=20, seed=None):
+    """Build a no-repeat quiz session: sample static bank without replacement,
+    top up with one batched LLM call when available. Never repeats a question
+    within the returned session. Single-question generate_quiz_for_topic untouched.
+    """
+    rng = random.Random(seed)
+    topic_key = _normalize_topic_key(topic_title)
+    bank = _full_static_bank(topic_key)
+    rng.shuffle(bank)
+
+    questions = []
+    seen = set()
+    for item in bank:
+        nq = _norm_question(item.get("question", ""))
+        if nq in seen:
+            continue
+        seen.add(nq)
+        q = dict(item)
+        q["citations"] = [f"{topic_title} Guidelines"]
+        q["difficulty"] = difficulty
+        questions.append(q)
+        if len(questions) >= count:
+            break
+
+    # Top-up via a single batched LLM call when the bank is short and LLM exists.
+    if len(questions) < count and get_mistral_client() is not None:
+        need = count - len(questions)
+        prompt = f"""You are an expert instructional designer at Nexora.
+Generate {need} novel, distinct Multiple Choice Questions for the topic "{topic_title}" at "{difficulty}" difficulty.
+Rules: each question strictly about Nexora policy; 4 options each; unambiguous.
+Output MUST be a raw JSON array (no markdown, no fences) of objects with keys:
+question, options (4 strings), correct_answer (exactly one of options),
+learning_objective (1 sentence), evidence_quote (short supporting quote).
+Do NOT repeat these existing questions: {[q["question"] for q in questions[:5]]}
+"""
+        try:
+            raw = clean_json_response(generate_completion(prompt, temperature=0.7))
+            m = re.search(r"\[.*\]", raw, re.DOTALL)
+            batch = json.loads(m.group(0) if m else raw)
+            for entry in batch:
+                if not isinstance(entry, dict):
+                    continue
+                if not all(k in entry for k in ("question", "options", "correct_answer")):
+                    continue
+                if len(entry.get("options", [])) != 4:
+                    continue
+                nq = _norm_question(entry.get("question", ""))
+                if not nq or nq in seen:
+                    continue
+                if entry["correct_answer"] not in entry["options"]:
+                    continue
+                seen.add(nq)
+                entry["citations"] = [f"{topic_title} Policy"]
+                entry["difficulty"] = difficulty
+                questions.append(entry)
+                if len(questions) >= count:
+                    break
+        except Exception as e:
+            print(f"[QuizSession] LLM top-up failed: {e}. Using static bank only.")
+
+    rng.shuffle(questions)
+    return {
+        "session_id": f"sess_{int(time.time()*1000)%1000000}_{rng.randint(100,999)}",
+        "topic": topic_title,
+        "role": role,
+        "difficulty": difficulty,
+        "count": len(questions),
+        "requested": count,
+        "complete": len(questions) >= count,
+        "questions": questions,
+    }
+
 
 def generate_quiz_for_topic(topic_title, role="all", difficulty="Beginner"):
     """
