@@ -1,0 +1,6 @@
+Title: Leave Policy
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Request leave in Workday at least 2 weeks in advance for planned vacations.

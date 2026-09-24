@@ -1,0 +1,6 @@
+Title: Code Review Guidelines
+Role: engineering
+Date: 2026-09-24
+----------------------------------------
+
+Review for clarity, security, and performance. No nitpicking; use automated formatters.

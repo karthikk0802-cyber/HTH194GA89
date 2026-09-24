@@ -1,0 +1,6 @@
+Title: Jira Triage Process
+Role: product,engineering
+Date: 2026-09-24
+----------------------------------------
+
+Bugs must have reproduction steps. Epics should be sized under 2 sprints.

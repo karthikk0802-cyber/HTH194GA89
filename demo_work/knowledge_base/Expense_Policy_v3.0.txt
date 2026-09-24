@@ -1,0 +1,6 @@
+Title: Expense Policy v3.0
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Per diem is $75 for travel. All expenses over $25 require a receipt submitted via Expensify.

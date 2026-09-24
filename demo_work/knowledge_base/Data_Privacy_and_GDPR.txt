@@ -1,0 +1,6 @@
+Title: Data Privacy & GDPR
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Never log PII. User data must be anonymized before entering analytics pipelines.

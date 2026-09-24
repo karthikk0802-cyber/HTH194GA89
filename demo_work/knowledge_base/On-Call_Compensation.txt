@@ -1,0 +1,6 @@
+Title: On-Call Compensation
+Role: engineering
+Date: 2026-09-24
+----------------------------------------
+
+Engineers get an extra $500 per on-call week.

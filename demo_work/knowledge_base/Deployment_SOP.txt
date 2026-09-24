@@ -1,0 +1,6 @@
+Title: Deployment SOP
+Role: devops,engineering
+Date: 2026-09-24
+----------------------------------------
+
+Deployments happen Tuesdays and Thursdays. No Friday deployments without VP approval.

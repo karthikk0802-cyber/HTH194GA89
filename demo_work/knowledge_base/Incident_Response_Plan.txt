@@ -1,0 +1,6 @@
+Title: Incident Response Plan
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Sev1 incidents require paging the on-call engineer via PagerDuty. Communication happens in #incidents channel.

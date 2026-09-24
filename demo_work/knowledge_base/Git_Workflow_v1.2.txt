@@ -1,0 +1,6 @@
+Title: Git Workflow v1.2
+Role: engineering
+Date: 2026-09-24
+----------------------------------------
+
+We use trunk-based development. All commits must be signed. PRs require 1 approval.

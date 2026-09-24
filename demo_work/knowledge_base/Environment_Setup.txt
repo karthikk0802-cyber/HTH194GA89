@@ -1,0 +1,6 @@
+Title: Environment Setup
+Role: engineering
+Date: 2026-09-24
+----------------------------------------
+
+Use Docker for local dev. Production access requires VPN and MFA.

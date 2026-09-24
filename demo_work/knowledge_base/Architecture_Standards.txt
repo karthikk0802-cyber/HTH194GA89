@@ -1,0 +1,6 @@
+Title: Architecture Standards
+Role: engineering
+Date: 2026-09-24
+----------------------------------------
+
+Microservices in Go, frontend in React, ML services in Python. GraphQL for API gateway.

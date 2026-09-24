@@ -1,0 +1,6 @@
+Title: Communication Guidelines
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Use Slack for async communication. Email for external clients. Zoom for sync meetings.

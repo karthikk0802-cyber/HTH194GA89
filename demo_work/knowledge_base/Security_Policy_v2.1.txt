@@ -1,0 +1,6 @@
+Title: Security Policy v2.1
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+Always lock your workstation. Password rotation every 90 days. Phishing simulation quarterly...
