@@ -8,6 +8,17 @@ export default function VoiceAndResources() {
   const [transcript, setTranscript] = useState('');
   const [tutorReply, setTutorReply] = useState('');
   const [loadingVoice, setLoadingVoice] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [ttsOn, setTtsOn] = useState(true);
+  const [voiceSupported, setVoiceSupported] = useState({ stt: false, tts: false });
+
+  useEffect(() => {
+    setVoiceSupported({
+      stt: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+      tts: 'speechSynthesis' in window,
+    });
+    return () => { try { window.speechSynthesis?.cancel(); } catch (e) { /* noop */ } };
+  }, []);
 
   const [selectedTopic, setSelectedTopic] = useState('security');
   const [resources, setResources] = useState([]);
@@ -40,15 +51,52 @@ export default function VoiceAndResources() {
     e.preventDefault();
     if (!transcript.trim()) return;
 
+    try { window.speechSynthesis?.cancel(); } catch (err) { /* noop */ }
     setLoadingVoice(true);
     try {
       const res = await api.voiceInteract(transcript, mode);
       setTutorReply(res.reply);
+      speak(res.reply);
     } catch (err) {
       alert('Voice tutor error: ' + err.message);
     } finally {
       setLoadingVoice(false);
     }
+  };
+
+  const speak = (text) => {
+    if (!ttsOn || !('speechSynthesis' in window)) return;
+    try {
+      const clean = (text || '').replace(/[*_`#]/g, '').slice(0, 600);
+      if (!clean.trim()) return;
+      const utter = new SpeechSynthesisUtterance(clean);
+      utter.rate = 1.0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch (err) { /* TTS unavailable: reply stays readable */ }
+  };
+
+  const toggleMic = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      window.__voiceRec?.stop();
+      return;
+    }
+    try {
+      const rec = new SR();
+      window.__voiceRec = rec;
+      rec.lang = 'en-US';
+      rec.interimResults = false;
+      rec.onresult = (ev) => {
+        const text = Array.from(ev.results).map(r => r[0]?.transcript || '').join(' ').trim();
+        if (text) setTranscript(text);
+      };
+      rec.onend = () => setListening(false);
+      rec.onerror = () => setListening(false);
+      rec.start();
+      setListening(true);
+    } catch (err) { /* mic unavailable */ }
   };
 
   return (
@@ -87,24 +135,54 @@ export default function VoiceAndResources() {
 
           <form onSubmit={handleVoiceSubmit}>
             <div className="row">
+              {voiceSupported.stt && (
+                <button
+                  type="button"
+                  className={`btn ${listening ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={toggleMic}
+                  title={listening ? 'Stop listening' : 'Speak instead of typing'}
+                >
+                  {listening ? 'Listening… (tap to stop)' : 'Speak'}
+                </button>
+              )}
               <input
                 type="text"
                 className="form-input"
                 style={{ flex: 1, minWidth: 240 }}
-                placeholder="Type what you'd say — e.g. why no Friday deploys?"
+                placeholder={voiceSupported.stt ? "Tap Speak and talk, or type here…" : "Type your question here…"}
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
               />
               <button type="submit" className="btn btn-primary" disabled={loadingVoice || !transcript.trim()}>
                 {loadingVoice ? <span className="spinner" /> : 'Ask tutor'}
               </button>
+              {voiceSupported.tts && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => { setTtsOn(v => !v); try { window.speechSynthesis?.cancel(); } catch (e) { /* noop */ } }}
+                  title="Spoken replies on/off"
+                >
+                  Voice {ttsOn ? 'on' : 'off'}
+                </button>
+              )}
             </div>
+            {!voiceSupported.stt && (
+              <p className="sub mt">This browser has no speech recognition — typing works fully.</p>
+            )}
           </form>
 
           {tutorReply && (
             <div className="callout callout-info mt">
-              <h4>Tutor reply</h4>
-              <p>{tutorReply}</p>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h4>Tutor reply</h4>
+                {voiceSupported.tts && (
+                  <button className="btn btn-sm btn-secondary" onClick={() => speak(tutorReply)}>
+                    Replay aloud
+                  </button>
+                )}
+              </div>
+              <p className="mt">{tutorReply}</p>
             </div>
           )}
         </div>
