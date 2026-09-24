@@ -6,6 +6,7 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [learningPath, setLearningPath] = useState(null);
+  const [buddyWatch, setBuddyWatch] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,11 +14,13 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
     setLoading(true);
     Promise.all([
       api.getDashboardSummary(user.username, selectedRole),
-      api.getLearningPath(user.username, selectedRole)
+      api.getLearningPath(user.username, selectedRole),
+      api.getBuddyAttention(user.username).catch(() => [])
     ])
-      .then(([dashData, pathData]) => {
+      .then(([dashData, pathData, buddyData]) => {
         setStats(dashData);
         setLearningPath(pathData);
+        setBuddyWatch(buddyData || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -138,6 +141,42 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
         ) : (
           <p className="sub">Nothing weak, nothing overdue. Good standing.</p>
         )}
+      </div>
+
+      {buddyWatch.length > 0 && (
+        <div className="section">
+          <div className="sec-head">
+            <h3><span className="idx">06</span>Buddy watch</h3>
+            <span className="note">your assigned learners</span>
+          </div>
+          <div>
+            {buddyWatch.map(b => (
+              <div key={b.userId} className="dir-row">
+                <div>
+                  <div>
+                    <div className="dir-main">{b.name}</div>
+                    <div className="dir-sub">
+                      {b.weak_areas.length > 0
+                        ? `Needs help: ${b.weak_areas.map(w => `${w.topic_id} (${w.mastery})`).join(', ')}`
+                        : 'On track — nothing weak'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">07</span>Visible to your manager</h3>
+        </div>
+        <p className="sub">
+          Readiness {stats?.readiness_percentage || 0}% · Level {stats?.level || 1} · {stats?.xp || 0} XP ·
+          weak areas: {stats?.weak_areas?.length ? stats.weak_areas.map(w => w.title).join(', ') : 'none'}.
+          Nothing else is shared.
+        </p>
       </div>
     </div>
   );

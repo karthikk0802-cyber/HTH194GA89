@@ -245,6 +245,81 @@ def _full_static_bank(topic_key):
     return out
 
 
+def _eval_id(topic_key, idx):
+    return f"{topic_key}:{idx}"
+
+
+def build_graded_eval(role, seen_hashes, count=20, seed=None):
+    """Held-out graded assessment: unseen bank questions across the role card.
+
+    Answers and evidence are stripped (server grades by eval_id). Stable IDs
+    come from bank order, so submit can re-derive the key without storage.
+    """
+    from services.eval_seen import qhash as _qhash
+    from services.taxonomy import get_role_card
+
+    rng = random.Random(seed)
+    card = get_role_card(role)
+    topics = list(card.get("topics", {}).keys()) or ["company_basics"]
+    seen = set(seen_hashes or [])
+
+    unseen, fallback = [], []
+    for topic_key in topics:
+        for idx, item in enumerate(_full_static_bank(topic_key)):
+            entry = {"eval_id": _eval_id(topic_key, idx), "topic": topic_key,
+                     "question": item.get("question", ""), "options": list(item.get("options", []))}
+            (unseen if _qhash(entry["question"]) not in seen else fallback).append(entry)
+    rng.shuffle(unseen)
+    rng.shuffle(fallback)
+    picked = (unseen + fallback)[:count]
+    rng.shuffle(picked)
+    return {
+        "questions": picked,
+        "count": len(picked),
+        "requested": count,
+        "unseen_count": min(len(unseen), count),
+        "complete": len(picked) >= count,
+    }
+
+
+def grade_graded_eval(answers, role="all"):
+    """Grade eval answers by stable eval_id. Returns per-topic + overall + certified."""
+    from services.diagnostic import is_answer_match
+    from services.taxonomy import NON_BYPASSABLE_TOPICS
+
+    per_topic, weak, correct_total, total = {}, [], 0, 0
+    compliance_wrong = 0
+    compliance_total = 0
+    for eval_id, user_ans in (answers or {}).items():
+        try:
+            topic_key, idx = eval_id.split(":", 1)
+            item = _full_static_bank(topic_key)[int(idx)]
+        except (ValueError, IndexError):
+            continue
+        ok = is_answer_match(user_ans or "", item.get("correct_answer", ""))
+        total += 1
+        d = per_topic.setdefault(topic_key, {"correct": 0, "total": 0})
+        d["total"] += 1
+        if ok:
+            correct_total += 1
+            d["correct"] += 1
+        if topic_key in NON_BYPASSABLE_TOPICS:
+            compliance_total += 1
+            if not ok:
+                compliance_wrong += 1
+        if topic_key not in weak and d["correct"] * 2 < d["total"]:
+            weak.append(topic_key)
+    score = int(correct_total * 100 / total) if total else 0
+    return {
+        "correct_count": correct_total,
+        "total_questions": total,
+        "score_percentage": score,
+        "per_topic": {t: {**d, "pct": int(d["correct"] * 100 / d["total"])} for t, d in per_topic.items()},
+        "weak_topics": weak,
+        "certified": bool(total) and score >= 80 and compliance_wrong == 0,
+    }
+
+
 def generate_quiz_session(topic_title, role="all", difficulty="Beginner", count=20, seed=None):
     """Build a no-repeat quiz session: sample static bank without replacement,
     top up with one batched LLM call when available. Never repeats a question

@@ -14,7 +14,7 @@ from services.auth_db import (
     get_auth_db, UserAuthModel, hash_password, verify_password, seed_default_auth_users, AuthSessionLocal
 )
 from services.db import (
-    get_db, DocumentModel, QuizFeedbackModel, UserTopicState, UserProfileModel, SessionLocal
+    get_db, DocumentModel, QuizFeedbackModel, UserTopicState, UserProfileModel, SessionLocal, SignoffModel
 )
 from services.roles import ROLES, TOPICS, get_role_topics
 from services.diagnostic import (
@@ -39,12 +39,13 @@ from services.admin_auth import (
     is_admin_token,
     require_admin,
 )
-from services.taxonomy import DEPARTMENTS, ROLE_CARDS, get_role_card
+from services.taxonomy import DEPARTMENTS, ROLE_CARDS, get_role_card, apply_bypass_policy
 from services.baseline_v2 import get_baseline_questions, score_baseline
 from services.quiz_policy_v2 import (
     generate_personalized_quiz,
     pick_difficulty,
     pick_next_topic,
+    effective_mastery,
 )
 
 ensure_admin_seed()
@@ -326,7 +327,7 @@ def get_diagnostic_questions(role: Optional[str] = "Software Engineer", count: O
 @app.post("/api/diagnostic/evaluate")
 def submit_diagnostic(req: DiagnosticSubmitRequest):
     eval_data = evaluate_diagnostic(req.answers, role=req.role)
-    bypassed = eval_data["bypassed_topics"]
+    bypassed = apply_bypass_policy(eval_data["bypassed_topics"])
     role_topics = get_role_topics(req.role)
     
     # Update topic states in DB
@@ -364,7 +365,15 @@ def submit_diagnostic(req: DiagnosticSubmitRequest):
             profile = UserProfileModel(user_id=req.userId, xp=0, level=1, streak_days=1)
             db.add(profile)
             
+        # XP is engagement fuel, not a measure: award diagnostic XP on first
+        # completion only, so retakes can't farm it. States/scores still update.
+        prior_attempt = db.query(UserTopicState).filter(
+            UserTopicState.user_id == req.userId,
+            UserTopicState.last_attempt_at.isnot(None)
+        ).first()
         xp_to_add = eval_data.get("xp_to_award", (eval_data.get("correct_count", 0) * 10) + 50)
+        if prior_attempt is not None:
+            xp_to_add = 0
         xp_gained = award_xp(profile, "preassessment_completed", score=xp_to_add)
         profile_xp = profile.xp
         profile_level = profile.level
@@ -480,12 +489,18 @@ def get_quiz_question(topic: str, role: Optional[str] = "all", difficulty: Optio
     return quiz
 
 @app.get("/api/quiz/session")
-def get_quiz_session(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = "Beginner", count: Optional[int] = 20):
+def get_quiz_session(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = "Beginner", count: Optional[int] = 20, userId: Optional[str] = None):
     """20-question no-repeat session. Single-question /api/quiz/generate untouched."""
     from services.quiz_generator import generate_quiz_session
     session = generate_quiz_session(topic, role=role or "all", difficulty=difficulty or "Beginner", count=count or 20)
     for q in session["questions"]:
         q["validation_passed"] = validate_quiz_question(q, q.get("evidence_quote", ""))
+    if userId:
+        try:
+            from services.eval_seen import log_seen
+            log_seen(userId, [q.get("question", "") for q in session["questions"]])
+        except Exception:
+            pass
     return session
 
 @app.post("/api/quiz/submit")
@@ -649,6 +664,24 @@ def get_dashboard_summary(userId: str, role: Optional[str] = "Software Engineer"
 # ---------------------------------------------------------------------------
 # 8. Manager Readiness & Team Oversight Endpoints
 # ---------------------------------------------------------------------------
+@app.get("/api/buddy/{username}/attention")
+def buddy_attention(username: str):
+    """Buddies see their assigned learners' weak areas (nudge digest, no email infra needed)."""
+    adb = AuthSessionLocal()
+    db = SessionLocal()
+    try:
+        learners = adb.query(UserAuthModel).filter(UserAuthModel.buddy_username == username).all()
+        out = []
+        for u in learners:
+            states = db.query(UserTopicState).filter(UserTopicState.user_id == u.username).all()
+            weak = [{"topic_id": s.topic_id, "mastery": s.mastery_score}
+                    for s in states if s.status == "Needs-Review" or (s.status == "Current" and s.mastery_score < 50)]
+            out.append({"userId": u.username, "name": u.full_name, "role": u.role, "weak_areas": weak})
+        return out
+    finally:
+        adb.close()
+        db.close()
+
 @app.get("/api/manager/team")
 def get_manager_team():
     db = SessionLocal()
@@ -697,13 +730,22 @@ def get_employee_readiness_report(userId: str, role: Optional[str] = "Software E
         states = db.query(UserTopicState).filter(UserTopicState.user_id == userId).all()
         required_topics = list(get_role_topics(role).keys())
         r_data = compute_readiness(states, required_topics)
-        
+
+        signoffs = db.query(SignoffModel).filter(SignoffModel.user_id == userId).all()
+        signoff_list = [{"topicId": s.topic_id, "signer": s.signer, "note": s.note,
+                         "at": s.created_at.isoformat() if s.created_at else None} for s in signoffs]
+        expert_topics = {s.topic_id for s in states if s.difficulty == "Expert"}
+        signed_topics = {s["topicId"] for s in signoff_list if s["topicId"]}
+        verified_topics = sorted(expert_topics & signed_topics)
+
         report_md = generate_readiness_report_md(profile, r_data, states, role)
         return {
             "userId": userId,
             "role": role,
             "readiness": r_data,
-            "report_markdown": report_md
+            "report_markdown": report_md,
+            "signoffs": signoff_list,
+            "verified_topics": verified_topics
         }
     finally:
         db.close()
@@ -831,8 +873,26 @@ def approve_document(docId: int, admin: str = Depends(_admin_guard)):
                                 {"title": doc.title, "role": doc.role})
         except Exception as e:
             print("ChromaDB approve warning:", e)
+        # Stale mastery expires: Completed states on affected topics reopen
+        # for review, since they were earned against the old SOP version.
+        invalidated = 0
+        try:
+            from services.taxonomy import doc_topics_for_title
+            for topic_key in doc_topics_for_title(doc.title):
+                rows = db.query(UserTopicState).filter(
+                    UserTopicState.topic_id == topic_key,
+                    UserTopicState.status == "Completed"
+                ).all()
+                for s in rows:
+                    s.status = "Needs-Review"
+                    s.next_review_at = datetime.utcnow()
+                invalidated += len(rows)
+            db.commit()
+        except Exception as e:
+            print("Mastery expiry warning:", e)
         return {"id": doc.id, "status": doc.status,
-                "review_after": doc.review_after.isoformat() if doc.review_after else None}
+                "review_after": doc.review_after.isoformat() if doc.review_after else None,
+                "mastery_invalidated": invalidated}
     finally:
         db.close()
 
@@ -868,6 +928,7 @@ class AdminCreateUserRequest(BaseModel):
     full_name: str
     role: Optional[str] = "Software Engineer"
     department: Optional[str] = "Engineering"
+    buddy: Optional[str] = ""
 
 class AdminUpdateUserRequest(BaseModel):
     email: Optional[str] = None
@@ -876,6 +937,7 @@ class AdminUpdateUserRequest(BaseModel):
     department: Optional[str] = None
     password: Optional[str] = None
     is_admin: Optional[bool] = None
+    buddy: Optional[str] = None
 
 def _public_user(u) -> Dict[str, Any]:
     return {
@@ -886,6 +948,7 @@ def _public_user(u) -> Dict[str, Any]:
         "role": u.role,
         "department": u.department,
         "is_admin": u.is_admin,
+        "buddy": getattr(u, "buddy_username", "") or "",
     }
 
 @app.post("/api/admin/login")
@@ -930,6 +993,7 @@ def admin_create_user(req: AdminCreateUserRequest, admin: str = Depends(_admin_g
             role=req.role or "Software Engineer",
             department=req.department or "Engineering",
             is_admin=False,
+            buddy_username=(req.buddy or "").strip(),
         )
         db.add(new_user)
         db.commit()
@@ -963,6 +1027,8 @@ def admin_update_user(username: str, req: AdminUpdateUserRequest, admin: str = D
             user.department = req.department
         if req.is_admin is not None:
             user.is_admin = req.is_admin
+        if req.buddy is not None:
+            user.buddy_username = (req.buddy or "").strip()
         if req.password:
             user.password_hash = hash_password(req.password)
         db.commit()
@@ -1004,6 +1070,39 @@ def admin_reset_baseline(username: str, admin: str = Depends(_admin_guard)):
     finally:
         db.close()
 
+class TransferRequest(BaseModel):
+    new_role: str
+    new_department: Optional[str] = None
+
+@app.post("/api/admin/users/{username}/transfer")
+def admin_transfer_role(username: str, req: TransferRequest, admin: str = Depends(_admin_guard)):
+    """Role transfer keeps shared-topic mastery, drops the rest. Growth stops nuking history."""
+    from services.taxonomy import get_role_card
+    adb = AuthSessionLocal()
+    db = SessionLocal()
+    try:
+        user = adb.query(UserAuthModel).filter(UserAuthModel.username == username).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        old_topics = set(get_role_card(user.role).get("topics", {}).keys())
+        new_topics = set(get_role_card(req.new_role).get("topics", {}).keys())
+        dropped = sorted(old_topics - new_topics)
+        kept = sorted(old_topics & new_topics)
+        if dropped:
+            db.query(UserTopicState).filter(
+                UserTopicState.user_id == username,
+                UserTopicState.topic_id.in_(dropped)
+            ).delete(synchronize_session=False)
+            db.commit()
+        user.role = req.new_role
+        if req.new_department is not None:
+            user.department = req.new_department
+        adb.commit()
+        return {"success": True, "user": _public_user(user), "kept_topics": kept, "dropped_topics": dropped}
+    finally:
+        adb.close()
+        db.close()
+
 # ---------------------------------------------------------------------------
 # 11. Adaptive quiz v2 — wrappers around frozen v1 (append-only)
 # ---------------------------------------------------------------------------
@@ -1035,8 +1134,10 @@ def v2_quiz_next(userId: str, role: Optional[str] = "Software Engineer"):
     db = SessionLocal()
     try:
         states = db.query(UserTopicState).filter(UserTopicState.user_id == userId).all()
-        weak = [s.topic_id for s in states if s.mastery_score < 50 and s.topic_id in required]
-        mastery = min([s.mastery_score for s in states if s.topic_id in required], default=0)
+        weak = [s.topic_id for s in states
+                if effective_mastery(s.mastery_score, s.last_attempt_at) < 50 and s.topic_id in required]
+        mastery = min([effective_mastery(s.mastery_score, s.last_attempt_at)
+                        for s in states if s.topic_id in required], default=0)
         difficulty = pick_difficulty(mastery)
         reason_suffix = ""
         if not states:
@@ -1086,7 +1187,91 @@ def v2_quiz_session(topic: str, role: Optional[str] = "all", userId: Optional[st
             db.close()
     session = generate_quiz_session(topic, role=role or "all", difficulty=pick_difficulty(mastery), count=count or 20)
     session["personalization"] = {"reason": f"mastery {mastery} -> {session['difficulty']}", "target_difficulty": session["difficulty"]}
+    if userId:
+        try:
+            from services.eval_seen import log_seen
+            log_seen(userId, [q.get("question", "") for q in session["questions"]])
+        except Exception:
+            pass
     return session
+
+class EvalSubmitRequest(BaseModel):
+    userId: str
+    role: Optional[str] = "Software Engineer"
+    answers: Dict[str, str]
+
+class SignoffRequest(BaseModel):
+    userId: str
+    signer: str
+    topicId: Optional[str] = None
+    note: Optional[str] = ""
+
+@app.post("/api/manager/signoff")
+def manager_signoff(req: SignoffRequest):
+    """Human evidence for Expert: signer must be an admin or the user's assigned buddy."""
+    adb = AuthSessionLocal()
+    db = SessionLocal()
+    try:
+        target = adb.query(UserAuthModel).filter(UserAuthModel.username == req.userId).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="User not found")
+        signer_user = adb.query(UserAuthModel).filter(UserAuthModel.username == req.signer).first()
+        is_admin = bool(signer_user and signer_user.is_admin)
+        is_buddy = (target.buddy_username or "") == req.signer
+        if not (is_admin or is_buddy):
+            raise HTTPException(status_code=403, detail="Only an admin or the assigned buddy can sign off")
+        row = SignoffModel(user_id=req.userId, topic_id=req.topicId,
+                           signer=req.signer, note=req.note or "")
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return {"success": True, "signoff": {"id": row.id, "userId": row.user_id,
+                "topicId": row.topic_id, "signer": row.signer, "note": row.note}}
+    finally:
+        adb.close()
+        db.close()
+
+@app.get("/api/v2/eval")
+def v2_graded_eval(userId: str, role: Optional[str] = "Software Engineer", count: Optional[int] = 20):
+    """Held-out graded assessment: unseen questions only. Answers stripped; server grades."""
+    from services.quiz_generator import build_graded_eval
+    from services.eval_seen import get_seen_hashes, log_seen
+    built = build_graded_eval(role or "Software Engineer", get_seen_hashes(userId), count=count or 20)
+    log_seen(userId, [q["question"] for q in built["questions"]])
+    return {"role": role, **built}
+
+@app.post("/api/v2/eval/submit")
+def v2_eval_submit(req: EvalSubmitRequest):
+    """Grade eval, update mastery via the standard (frozen) updater. No XP: measures don't pay."""
+    from services.quiz_generator import grade_graded_eval
+    result = grade_graded_eval(req.answers, role=req.role or "Software Engineer")
+    db = SessionLocal()
+    try:
+        for eval_id, user_ans in (req.answers or {}).items():
+            try:
+                topic_key = eval_id.split(":", 1)[0]
+            except ValueError:
+                continue
+            from services.diagnostic import is_answer_match
+            from services.quiz_generator import _full_static_bank
+            try:
+                item = _full_static_bank(topic_key)[int(eval_id.split(":", 1)[1])]
+            except (ValueError, IndexError):
+                continue
+            ok = is_answer_match(user_ans or "", item.get("correct_answer", ""))
+            state = db.query(UserTopicState).filter(
+                UserTopicState.user_id == req.userId,
+                UserTopicState.topic_id == topic_key
+            ).first()
+            if not state:
+                state = UserTopicState(user_id=req.userId, topic_id=topic_key,
+                                       status="Current", difficulty="Beginner", mastery_score=0)
+                db.add(state)
+            update_topic_state(state, is_correct=ok)
+        db.commit()
+    finally:
+        db.close()
+    return {"success": True, **result}
 
 @app.get("/api/taxonomy")
 def get_taxonomy():

@@ -52,6 +52,17 @@ class UserProfileModel(Base):
     badges = Column(String, default="[]") # JSON list
 
 
+class SignoffModel(Base):
+    """Human verification: manager or assigned buddy signs off a topic (or overall)."""
+    __tablename__ = "manager_signoffs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, nullable=False)
+    topic_id = Column(String, nullable=True) # null = overall readiness sign-off
+    signer = Column(String, nullable=False)
+    note = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 Base.metadata.create_all(bind=engine)
 
 

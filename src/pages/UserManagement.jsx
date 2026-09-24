@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 
-const EMPTY = { username: '', email: '', password: 'employee@123', full_name: '', role: 'Backend Engineer', department: 'Engineering - Core Platform' };
+const EMPTY = { username: '', email: '', password: 'employee@123', full_name: '', role: 'Backend Engineer', department: 'Engineering - Core Platform', buddy: '' };
 const RESUME_ENABLED = import.meta.env.VITE_RESUME_PROFILE === 'true';
 
 export default function UserManagement() {
@@ -11,7 +11,7 @@ export default function UserManagement() {
   const [error, setError] = useState('');
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
-  const [editVals, setEditVals] = useState({ role: '', department: '' });
+  const [editVals, setEditVals] = useState({ role: '', department: '', buddy: '' });
   const [saving, setSaving] = useState(false);
   const [taxonomy, setTaxonomy] = useState({ departments: {}, role_cards: {} });
   const [profiles, setProfiles] = useState({});
@@ -59,12 +59,12 @@ export default function UserManagement() {
 
   const startEdit = (u) => {
     setEditing(u.username);
-    setEditVals({ role: u.role, department: u.department });
+    setEditVals({ role: u.role, department: u.department, buddy: u.buddy || '' });
   };
 
   const handleUpdate = async (username) => {
     try {
-      await api.adminUpdateUser(token, username, { role: editVals.role, department: editVals.department });
+      await api.adminUpdateUser(token, username, { role: editVals.role, department: editVals.department, buddy: editVals.buddy });
       setEditing(null);
       await load();
     } catch (err) {
@@ -89,6 +89,18 @@ export default function UserManagement() {
       alert('Baseline reset for ' + username);
     } catch (err) {
       alert('Reset failed: ' + err.message);
+    }
+  };
+
+  const handleTransfer = async (username) => {
+    if (!window.confirm(`Transfer ${username} to ${editVals.role} / ${editVals.department}? Shared-topic mastery is kept, the rest is dropped.`)) return;
+    try {
+      const res = await api.adminTransferRole(token, username, editVals.role, editVals.department);
+      setEditing(null);
+      await load();
+      alert(`Transferred. Kept: ${res.kept_topics.join(', ') || 'none'}. Dropped: ${res.dropped_topics.join(', ') || 'none'}.`);
+    } catch (err) {
+      alert('Transfer failed: ' + err.message);
     }
   };
 
@@ -167,6 +179,10 @@ export default function UserManagement() {
                 {rolesForDept(form.department).map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
+            <div className="input-group">
+              <label className="input-label">Buddy (username, optional)</label>
+              <input className="form-input" placeholder="sarah_engineer" value={form.buddy} onChange={(e) => setForm({ ...form, buddy: e.target.value })} />
+            </div>
           </div>
           <button className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create user'}</button>
         </form>
@@ -179,13 +195,14 @@ export default function UserManagement() {
         </div>
         <div className="custom-table-container">
           <table className="custom-table">
-            <thead><tr><th>User</th><th>Role</th><th>Department</th><th>Admin</th><th></th></tr></thead>
+            <thead><tr><th>User</th><th>Role</th><th>Department</th><th>Buddy</th><th>Admin</th><th></th></tr></thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.username}>
                   <td>
                     <strong>{u.username}</strong>
                     <div className="cell-sub">{u.full_name} · {u.email}</div>
+                    {u.buddy && <div className="cell-sub">Buddy: {u.buddy}</div>}
                     {RESUME_ENABLED && profiles[u.username] && (
                       <div className="cell-sub">Resume: {profiles[u.username].seniority} · {Object.keys(profiles[u.username].topic_adjustments || {}).length} calibrated topics</div>
                     )}
@@ -204,12 +221,16 @@ export default function UserManagement() {
                         {departments.map((d) => <option key={d} value={d}>{d}</option>)}
                       </select>
                     : u.department}</td>
+                  <td>{editing === u.username
+                    ? <input className="form-input" value={editVals.buddy} placeholder="buddy username" onChange={(e) => setEditVals((v) => ({ ...v, buddy: e.target.value }))} />
+                    : (u.buddy || '—')}</td>
                   <td>{u.is_admin ? 'yes' : '—'}</td>
                   <td>
                     <div className="row">
                       {editing === u.username ? (
                         <>
                           <button className="btn btn-sm btn-primary" onClick={() => handleUpdate(u.username)}>Save</button>
+                          <button className="btn btn-sm btn-secondary" onClick={() => handleTransfer(u.username)}>Transfer role</button>
                           <button className="btn btn-sm btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
                         </>
                       ) : (

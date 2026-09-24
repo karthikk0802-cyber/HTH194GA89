@@ -20,9 +20,27 @@ class UserAuthModel(AuthBase):
     role = Column(String, default="Software Engineer") # Software Engineer, Product Manager, DevOps Engineer, Manager, Admin
     department = Column(String, default="Engineering")
     is_admin = Column(Boolean, default=False)
+    buddy_username = Column(String, default="") # assigned onboarding buddy (admin-set)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 AuthBase.metadata.create_all(bind=auth_engine)
+
+
+def ensure_auth_schema():
+    """Additive columns for pre-existing auth.db files."""
+    import sqlite3
+
+    conn = sqlite3.connect("./auth.db")
+    try:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(auth_users)").fetchall()}
+        if "buddy_username" not in cols:
+            conn.execute("ALTER TABLE auth_users ADD COLUMN buddy_username VARCHAR DEFAULT ''")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+ensure_auth_schema()
 
 def get_auth_db():
     db = AuthSessionLocal()

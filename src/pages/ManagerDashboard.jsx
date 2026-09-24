@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 
 export default function ManagerDashboard() {
+  const { user: viewer } = useAuth();
   const [team, setTeam] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -44,6 +46,18 @@ export default function ManagerDashboard() {
     a.href = url;
     a.download = `${selectedEmp.userId}_readiness_audit_report.md`;
     a.click();
+  };
+
+  const handleSignoff = async () => {
+    if (!selectedEmp) return;
+    const note = window.prompt(`Sign off ${selectedEmp.name} (${selectedEmp.role}) as human-verified? Optional note:`, '') || '';
+    try {
+      await api.managerSignoff(selectedEmp.userId, viewer?.username || 'manager', null, note);
+      alert('Signed off.');
+      handleSelectEmp(selectedEmp);
+    } catch (err) {
+      alert('Sign-off failed: ' + err.message);
+    }
   };
 
   if (loading) {
@@ -133,11 +147,32 @@ export default function ManagerDashboard() {
         <div className="section">
           <div className="sec-head">
             <h3><span className="idx">03</span>{selectedEmp.name}</h3>
-            <button className="btn btn-sm btn-primary" onClick={downloadReport} disabled={loadingReport || !reportData}>
-              Export report (.md)
-            </button>
+            <span className="row">
+              <button className="btn btn-sm btn-secondary" onClick={downloadReport} disabled={loadingReport || !reportData}>
+                Export report (.md)
+              </button>
+              <button className="btn btn-sm btn-primary" onClick={handleSignoff}>
+                Sign off
+              </button>
+            </span>
           </div>
           <p className="sub">{selectedEmp.role} · Verdict: {selectedEmp.status}</p>
+
+          {reportData?.verified_topics?.length > 0 && (
+            <p className="sub">Human-verified Expert: {reportData.verified_topics.join(', ')}</p>
+          )}
+          {reportData?.signoffs?.length > 0 && (
+            <div className="mt">
+              {reportData.signoffs.map((s, i) => (
+                <div key={i} className="dir-row">
+                  <div>
+                    <div className="dir-main">Signed off{s.topicId ? ` · ${s.topicId}` : ' · overall'}</div>
+                    <div className="dir-sub">by {s.signer}{s.note ? ` — ${s.note}` : ''}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {selectedEmp.missing_topics && selectedEmp.missing_topics.length > 0 && (
             <div className="mt">

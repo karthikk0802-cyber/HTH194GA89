@@ -156,6 +156,18 @@ export const api = {
   startPersonalizedSession: (topic, role = 'all', userId = '', count = 20) =>
     request(`/v2/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}&count=${encodeURIComponent(count)}`),
 
+  // Held-out graded eval (measures, never pays XP) + buddy + transfer
+  getGradedEval: (userId, role) =>
+    request(`/v2/eval?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
+  submitGradedEval: (userId, role, answers) =>
+    request('/v2/eval/submit', { method: 'POST', body: JSON.stringify({ userId, role, answers }) }),
+  getBuddyAttention: (username) =>
+    request(`/buddy/${encodeURIComponent(username)}/attention`),
+  managerSignoff: (userId, signer, topicId = null, note = '') =>
+    request('/manager/signoff', { method: 'POST', body: JSON.stringify({ userId, signer, topicId, note }) }),
+  adminTransferRole: (token, username, newRole, newDepartment) =>
+    request(`/admin/users/${encodeURIComponent(username)}/transfer`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ new_role: newRole, new_department: newDepartment }) }),
+
   // Resume profiles (admin-only)
   uploadResume: async (token, userId, role, file) => {
     const formData = new FormData();

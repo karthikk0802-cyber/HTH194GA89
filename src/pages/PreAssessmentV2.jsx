@@ -11,6 +11,11 @@ export default function PreAssessmentV2({ selectedRole, setActiveTab }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  // Held-out graded eval (unseen questions only, no XP)
+  const [evalQs, setEvalQs] = useState(null);
+  const [evalAnswers, setEvalAnswers] = useState({});
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [evalResult, setEvalResult] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -34,6 +39,33 @@ export default function PreAssessmentV2({ selectedRole, setActiveTab }) {
       alert('Baseline evaluation failed: ' + err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEval = async () => {
+    setEvalLoading(true);
+    setEvalResult(null);
+    setEvalAnswers({});
+    try {
+      const res = await api.getGradedEval(user?.username || 'demo_user', selectedRole);
+      setEvalQs(res);
+    } catch (err) {
+      alert('Graded eval failed: ' + err.message);
+    } finally {
+      setEvalLoading(false);
+    }
+  };
+
+  const submitEval = async (e) => {
+    e.preventDefault();
+    setEvalLoading(true);
+    try {
+      const res = await api.submitGradedEval(user?.username || 'demo_user', selectedRole, evalAnswers);
+      setEvalResult(res);
+    } catch (err) {
+      alert('Eval submit failed: ' + err.message);
+    } finally {
+      setEvalLoading(false);
     }
   };
 
@@ -80,6 +112,7 @@ export default function PreAssessmentV2({ selectedRole, setActiveTab }) {
           </div>
           {result.weak_topics?.length > 0 && <p className="sub mt">Weak → personalized practice: {result.weak_topics.join(', ')}</p>}
           {result.strong_topics?.length > 0 && <p className="sub">Strong → bypassed: {result.strong_topics.join(', ')}</p>}
+          {result.must_complete?.length > 0 && <p className="sub">Must still complete (compliance, no bypass): {result.must_complete.join(', ')}</p>}
           <div className="row mt">
             <button className="btn btn-secondary" onClick={load}>Retake</button>
             <button className="btn btn-primary" onClick={() => setActiveTab('quiz')}>Start personalized practice →</button>
@@ -116,6 +149,62 @@ export default function PreAssessmentV2({ selectedRole, setActiveTab }) {
           </button>
         </form>
       )}
+
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">04</span>Graded eval</h3>
+          <span className="note">unseen questions · no XP · certifies</span>
+        </div>
+        {!evalQs && !evalResult && (
+          <>
+            <p className="sub">Twenty questions you've never been served. Score ≥80% with all compliance topics correct to certify.</p>
+            <button className="btn btn-primary mt" onClick={startEval} disabled={evalLoading}>
+              {evalLoading ? 'Preparing…' : 'Take graded eval'}
+            </button>
+          </>
+        )}
+        {evalQs && !evalResult && (
+          <form onSubmit={submitEval}>
+            <p className="sub">{evalQs.unseen_count} of {evalQs.count} unseen to you.</p>
+            {evalQs.questions.map((q, i) => (
+              <div key={q.eval_id} style={{ marginBottom: 28 }}>
+                <p style={{ fontSize: '1.15rem', maxWidth: '38ch' }}>
+                  <span className="mono" style={{ color: 'var(--accent)', marginRight: 8 }}>#{i + 1}</span>
+                  {q.question}
+                </p>
+                <p className="sub">{q.topic}</p>
+                <div style={{ marginTop: 8 }}>
+                  {q.options.map((opt) => (
+                    <div
+                      key={opt}
+                      onClick={() => setEvalAnswers((p) => ({ ...p, [q.eval_id]: opt }))}
+                      className={`option${evalAnswers[q.eval_id] === opt ? ' option-picked' : ''}`}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button type="submit" className="btn btn-primary" disabled={evalLoading}>
+              {evalLoading ? 'Grading…' : 'Submit eval'}
+            </button>
+          </form>
+        )}
+        {evalResult && (
+          <>
+            <p className="kpi">{evalResult.correct_count} / {evalResult.total_questions}</p>
+            <p className="sub">
+              {evalResult.score_percentage}% · {evalResult.certified ? 'Certified.' : 'Not certified.'}
+              {evalResult.weak_topics?.length > 0 ? ` Weak: ${evalResult.weak_topics.join(', ')}.` : ''}
+            </p>
+            <div className="row mt">
+              <button className="btn btn-secondary" onClick={() => { setEvalQs(null); setEvalResult(null); }}>Close</button>
+              <button className="btn btn-primary" onClick={startEval}>New eval set</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
