@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 
-export default function Login() {
+export default function Login({ onAdmin }) {
   const { login, register, quickSwitchUser } = useAuth();
+  const DEMO_ENABLED = import.meta.env.VITE_ENABLE_DEMO_LOGIN === 'true';
   const [isRegister, setIsRegister] = useState(false);
   
   const [username, setUsername] = useState('sarah_engineer');
@@ -18,12 +19,17 @@ export default function Login() {
   const [demoUsers, setDemoUsers] = useState([]);
 
   useEffect(() => {
+    if (!DEMO_ENABLED) return;
     api.getUsers().then(setDemoUsers).catch(console.error);
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (isRegister && !DEMO_ENABLED) {
+      setError('Self-registration disabled — contact admin');
+      return;
+    }
     setLoading(true);
 
     if (isRegister) {
@@ -103,6 +109,7 @@ export default function Login() {
             >
               Sign In
             </button>
+            {DEMO_ENABLED && (
             <button
               onClick={() => { setIsRegister(true); setError(''); }}
               style={{
@@ -119,6 +126,7 @@ export default function Login() {
             >
               Create Account
             </button>
+            )}
           </div>
 
           {error && (
@@ -212,7 +220,8 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Quick Demo Logins */}
+          {/* Quick Demo Logins — hidden unless demo flag enabled */}
+          {DEMO_ENABLED && (
           <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid var(--border-subtle)' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '10px', textTransform: 'uppercase' }}>
               ⚡ Instant 1-Click Demo Profiles:
@@ -231,11 +240,19 @@ export default function Login() {
               ))}
             </div>
           </div>
+          )}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-muted)', fontSize: '12px' }}>
           Auth Data securely managed via dedicated <code>auth.db</code> isolated from vector indices.
         </div>
+        {onAdmin && (
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button onClick={onAdmin} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+            Admin sign-in →
+          </button>
+        </div>
+        )}
       </div>
     </div>
   );

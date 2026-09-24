@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import './Navbar.css';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import ChangePassword from './ChangePassword';
 
-export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
+export default function Navbar({ activeTab, selectedRole }) {
   const { user, profileStats, logout, quickSwitchUser } = useAuth();
   const [allUsers, setAllUsers] = useState([]);
   const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     api.getUsers().then(setAllUsers).catch(console.error);
@@ -25,17 +27,6 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
     'admin': 'Knowledge Base & Audit Administration'
   };
 
-  const rolesList = [
-    'Software Engineer',
-    'Product Manager',
-    'DevOps Engineer',
-    'Sales Representative',
-    'Marketing Specialist',
-    'HR Manager',
-    'Data Scientist',
-    'Customer Support'
-  ];
-
   const getInitials = (name) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -52,18 +43,10 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
       </div>
 
       <div className="navbar-right">
-        {/* Role Selector */}
+        {/* Role is admin-assigned: display only, no user switching */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>ROLE VIEW:</span>
-          <select
-            className="role-switcher-select"
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-          >
-            {rolesList.map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>ROLE:</span>
+          <span className="badge badge-indigo" style={{ fontSize: '12px' }}>{user?.role || selectedRole}</span>
         </div>
 
         {/* Live XP & Level Badges */}
@@ -114,6 +97,14 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
             <button
               className="btn btn-secondary"
               style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }}
+              onClick={() => setShowPasswordModal(true)}
+              title="Change password"
+            >
+              Password
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }}
               onClick={() => setShowSwitchModal(!showSwitchModal)}
               title="Switch user account"
             >
@@ -131,6 +122,7 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
         )}
 
         {/* Quick Switch Dropdown */}
+        {showPasswordModal && <ChangePassword onDone={() => setShowPasswordModal(false)} />}
         {showSwitchModal && (
           <div
             style={{
@@ -162,7 +154,6 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
                   key={u.username}
                   onClick={() => {
                     quickSwitchUser(u);
-                    setSelectedRole(u.role || 'Software Engineer');
                     setShowSwitchModal(false);
                   }}
                   style={{
