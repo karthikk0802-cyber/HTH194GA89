@@ -32,6 +32,9 @@ export const api = {
   
   getMe: (userId) => request(`/auth/me?userId=${encodeURIComponent(userId)}`),
 
+  changePassword: (username, oldPassword, newPassword) =>
+    request('/auth/change-password', { method: 'POST', body: JSON.stringify({ username, old_password: oldPassword, new_password: newPassword }) }),
+
   // Roles & Diagnostic
   getRoles: () => request('/roles'),
   getRoleTopics: (role) => request(`/roles/${encodeURIComponent(role)}/topics`),
@@ -119,5 +122,52 @@ export const api = {
     });
     if (!res.ok) throw new Error('Upload failed');
     return await res.json();
-  }
+  },
+
+  // Admin portal (separate admin token; existing auth functions untouched)
+  adminLogin: (username, password) =>
+    request('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  adminListUsers: (token) =>
+    request('/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
+  adminCreateUser: (token, data) =>
+    request('/admin/users', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(data) }),
+  adminUpdateUser: (token, username, data) =>
+    request(`/admin/users/${encodeURIComponent(username)}`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(data) }),
+  adminDeleteUser: (token, username) =>
+    request(`/admin/users/${encodeURIComponent(username)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+  adminResetBaseline: (token, username) =>
+    request(`/admin/users/${encodeURIComponent(username)}/reset-baseline`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),
+
+  // Adaptive quiz v2 (wrappers; v1 functions untouched)
+  getTaxonomy: () => request('/taxonomy'),
+  getBaselineQuestions: (role, perTopic = 3, userId = '') =>
+    request(`/v2/diagnostic/questions?role=${encodeURIComponent(role)}&per_topic=${encodeURIComponent(perTopic)}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
+  submitBaseline: (userId, role, answers) =>
+    request('/v2/diagnostic/evaluate', { method: 'POST', body: JSON.stringify({ userId, role, answers }) }),
+  getQuizNext: (userId, role) =>
+    request(`/v2/quiz/next?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
+  generatePersonalizedQuiz: (topic, role = 'all', userId = '') =>
+    request(`/v2/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`),
+
+  // Resume profiles (admin-only)
+  uploadResume: async (token, userId, role, file) => {
+    const formData = new FormData();
+    formData.append('userId', userId);
+    formData.append('role', role);
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/v2/profile/resume`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Resume upload failed');
+    }
+    return await res.json();
+  },
+  getResumeProfile: (token, userId) =>
+    request(`/v2/profile/${encodeURIComponent(userId)}`, { headers: { Authorization: `Bearer ${token}` } }),
+  deleteResumeProfile: (token, userId) =>
+    request(`/v2/profile/${encodeURIComponent(userId)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
 };

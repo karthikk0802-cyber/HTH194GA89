@@ -41,6 +41,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def seed_default_auth_users():
     """Seed default authentication accounts into auth.db"""
+    import os as _os
     db = AuthSessionLocal()
     try:
         if db.query(UserAuthModel).count() == 0:
@@ -84,7 +85,7 @@ def seed_default_auth_users():
                 {
                     "username": "admin",
                     "email": "admin@nexora.com",
-                    "password": "admin123",
+                    "password": _os.getenv("ADMIN_PASSWORD", "admin123"),
                     "full_name": "Karthik",
                     "role": "Admin",
                     "department": "IT & SecOps",

@@ -3,7 +3,8 @@ import './Sidebar.css';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const isAdmin = !!user?.is_admin && (token || '').startsWith('admin_token_');
 
   const navigation = [
     { section: 'Learner Workspace' },
@@ -14,10 +15,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'quiz', label: 'Adaptive Quizzes', icon: '🎯' },
     { id: 'scenarios', label: 'Applied Scenarios', icon: '🧩' },
     { id: 'voice-resources', label: 'Voice & Resources', icon: '🎙️' },
-    
+
     { section: 'Management & Oversight' },
     { id: 'manager', label: 'Team Readiness', icon: '👥' },
-    { id: 'admin', label: 'Knowledge Admin', icon: '⚙️' }
+    { id: 'admin', label: 'Knowledge Admin', icon: '⚙️' },
+    ...(isAdmin ? [{ id: 'admin-users', label: 'User Management', icon: '🔐' }] : [])
   ];
 
   return (

@@ -91,6 +91,16 @@ export const AuthProvider = ({ children }) => {
     fetchProfileStats(selectedUser.username, selectedUser.role);
   };
 
+  const changePassword = async (username, oldPassword, newPassword) => {
+    try {
+      const res = await api.changePassword(username, oldPassword, newPassword);
+      setUser(res.user);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Password change failed' };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -128,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       quickSwitchUser,
+      changePassword,
       logout,
       updateRole,
       updateXpPoints,

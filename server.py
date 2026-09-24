@@ -34,6 +34,27 @@ from services.teaching import generate_remediation, generate_explain_again
 from services.scenarios import SCENARIOS, evaluate_scenario_response
 from services.document_processor import extract_text, chunk_text, extract_metadata_from_text
 from services.embedding import add_chunks_to_chroma, delete_document_from_chroma
+from services.admin_auth import (
+    ensure_admin_seed,
+    is_admin_token,
+    require_admin,
+)
+from services.taxonomy import DEPARTMENTS, ROLE_CARDS, get_role_card
+from services.baseline_v2 import get_baseline_questions, score_baseline
+from services.quiz_policy_v2 import (
+    generate_personalized_quiz,
+    pick_difficulty,
+    pick_next_topic,
+)
+
+ensure_admin_seed()
+
+# First-login default password for admin-created users (env-overridable).
+DEFAULT_EMPLOYEE_PASSWORD = os.getenv("DEFAULT_EMPLOYEE_PASSWORD", "employee@123")
+
+def _admin_guard(authorization: Optional[str] = Header(default=None)) -> str:
+    """Header-injecting wrapper so Depends gets the Authorization header."""
+    return require_admin(authorization)
 
 app = FastAPI(
     title="OnboardIQ API Server",
@@ -110,7 +131,10 @@ class VoiceInteractionRequest(BaseModel):
 # 1. Authentication Endpoints (Dedicated auth.db)
 # ---------------------------------------------------------------------------
 @app.post("/api/auth/register")
-def register_user(req: RegisterRequest):
+def register_user(req: RegisterRequest, authorization: Optional[str] = Header(default=None)):
+    # Public self-registration disabled — admin-only user creation.
+    if not is_admin_token(authorization):
+        raise HTTPException(status_code=403, detail="Self-registration disabled — contact admin")
     db = AuthSessionLocal()
     try:
         existing = db.query(UserAuthModel).filter(
@@ -191,7 +215,8 @@ def login_user(req: LoginRequest):
                 "full_name": user.full_name,
                 "role": user.role,
                 "department": user.department,
-                "is_admin": user.is_admin
+                "is_admin": user.is_admin,
+                "must_change_password": user.password_hash == hash_password(DEFAULT_EMPLOYEE_PASSWORD)
             },
             "token": f"token_{user.username}_{user.id}"
         }
@@ -199,8 +224,10 @@ def login_user(req: LoginRequest):
         db.close()
 
 @app.get("/api/auth/users")
-def get_auth_users():
-    """List all accounts for convenient quick-switch in the frontend."""
+def get_auth_users(authorization: Optional[str] = Header(default=None)):
+    """List all accounts — admin-only (used by admin portal + gated demo switch)."""
+    if not is_admin_token(authorization):
+        raise HTTPException(status_code=403, detail="Admin access required")
     db = AuthSessionLocal()
     try:
         users = db.query(UserAuthModel).all()
@@ -216,6 +243,40 @@ def get_auth_users():
             }
             for u in users
         ]
+    finally:
+        db.close()
+
+class ChangePasswordRequest(BaseModel):
+    username: str
+    old_password: str
+    new_password: str
+
+@app.post("/api/auth/change-password")
+def change_password(req: ChangePasswordRequest):
+    if not req.new_password or len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+    if req.new_password == req.old_password:
+        raise HTTPException(status_code=400, detail="New password must differ from the old password")
+    db = AuthSessionLocal()
+    try:
+        user = db.query(UserAuthModel).filter(UserAuthModel.username == req.username).first()
+        if not user or not verify_password(req.old_password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+        user.password_hash = hash_password(req.new_password)
+        db.commit()
+        return {
+            "success": True,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role,
+                "department": user.department,
+                "is_admin": user.is_admin,
+                "must_change_password": False
+            }
+        }
     finally:
         db.close()
 
@@ -744,6 +805,268 @@ def list_feedback():
         ]
     finally:
         db.close()
+
+# ---------------------------------------------------------------------------
+# 10. Admin portal — separate login + user CRUD (append-only, v1 untouched)
+# ---------------------------------------------------------------------------
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+class AdminCreateUserRequest(BaseModel):
+    username: str
+    email: str
+    password: Optional[str] = None
+    full_name: str
+    role: Optional[str] = "Software Engineer"
+    department: Optional[str] = "Engineering"
+
+class AdminUpdateUserRequest(BaseModel):
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    department: Optional[str] = None
+    password: Optional[str] = None
+    is_admin: Optional[bool] = None
+
+def _public_user(u) -> Dict[str, Any]:
+    return {
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "full_name": u.full_name,
+        "role": u.role,
+        "department": u.department,
+        "is_admin": u.is_admin,
+    }
+
+@app.post("/api/admin/login")
+def admin_login(req: AdminLoginRequest):
+    db = AuthSessionLocal()
+    try:
+        user = db.query(UserAuthModel).filter(
+            UserAuthModel.username == req.username
+        ).first()
+        if not user or not user.is_admin or not verify_password(req.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid admin credentials")
+        return {
+            "success": True,
+            "user": _public_user(user),
+            "token": f"admin_token_{user.username}_{user.id}",
+        }
+    finally:
+        db.close()
+
+@app.get("/api/admin/users")
+def admin_list_users(admin: str = Depends(_admin_guard)):
+    db = AuthSessionLocal()
+    try:
+        return [_public_user(u) for u in db.query(UserAuthModel).all()]
+    finally:
+        db.close()
+
+@app.post("/api/admin/users")
+def admin_create_user(req: AdminCreateUserRequest, admin: str = Depends(_admin_guard)):
+    db = AuthSessionLocal()
+    try:
+        existing = db.query(UserAuthModel).filter(
+            (UserAuthModel.username == req.username) | (UserAuthModel.email == req.email)
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username or Email already exists")
+        new_user = UserAuthModel(
+            username=req.username,
+            email=req.email,
+            password_hash=hash_password(req.password or DEFAULT_EMPLOYEE_PASSWORD),
+            full_name=req.full_name,
+            role=req.role or "Software Engineer",
+            department=req.department or "Engineering",
+            is_admin=False,
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        odb = SessionLocal()
+        try:
+            profile = odb.query(UserProfileModel).filter(UserProfileModel.user_id == new_user.username).first()
+            if not profile:
+                odb.add(UserProfileModel(user_id=new_user.username, xp=0, level=1, streak_days=1))
+                odb.commit()
+        finally:
+            odb.close()
+        return {"success": True, "user": _public_user(new_user)}
+    finally:
+        db.close()
+
+@app.put("/api/admin/users/{username}")
+def admin_update_user(username: str, req: AdminUpdateUserRequest, admin: str = Depends(_admin_guard)):
+    db = AuthSessionLocal()
+    try:
+        user = db.query(UserAuthModel).filter(UserAuthModel.username == username).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if req.email is not None:
+            user.email = req.email
+        if req.full_name is not None:
+            user.full_name = req.full_name
+        if req.role is not None:
+            user.role = req.role
+        if req.department is not None:
+            user.department = req.department
+        if req.is_admin is not None:
+            user.is_admin = req.is_admin
+        if req.password:
+            user.password_hash = hash_password(req.password)
+        db.commit()
+        db.refresh(user)
+        return {"success": True, "user": _public_user(user)}
+    finally:
+        db.close()
+
+@app.delete("/api/admin/users/{username}")
+def admin_delete_user(username: str, admin: str = Depends(_admin_guard)):
+    if username == admin:
+        raise HTTPException(status_code=400, detail="Admin cannot delete self")
+    adb = AuthSessionLocal()
+    db = SessionLocal()
+    try:
+        user = adb.query(UserAuthModel).filter(UserAuthModel.username == username).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        adb.delete(user)
+        adb.commit()
+        db.query(UserTopicState).filter(UserTopicState.user_id == username).delete()
+        profile = db.query(UserProfileModel).filter(UserProfileModel.user_id == username).first()
+        if profile:
+            db.delete(profile)
+        db.commit()
+        return {"success": True, "deleted": username}
+    finally:
+        adb.close()
+        db.close()
+
+@app.post("/api/admin/users/{username}/reset-baseline")
+def admin_reset_baseline(username: str, admin: str = Depends(_admin_guard)):
+    """Clear a user's topic states so the (v1 or v2) baseline can be retaken."""
+    db = SessionLocal()
+    try:
+        db.query(UserTopicState).filter(UserTopicState.user_id == username).delete()
+        db.commit()
+        return {"success": True, "reset": username}
+    finally:
+        db.close()
+
+# ---------------------------------------------------------------------------
+# 11. Adaptive quiz v2 — wrappers around frozen v1 (append-only)
+# ---------------------------------------------------------------------------
+@app.get("/api/v2/diagnostic/questions")
+def v2_diagnostic_questions(role: Optional[str] = "Software Engineer", per_topic: Optional[int] = 3, userId: Optional[str] = None):
+    profile = None
+    if userId:
+        try:
+            from services.resume_profile import get_profile
+            profile = get_profile(userId)
+        except Exception:
+            profile = None
+    return get_baseline_questions(role=role or "Software Engineer", per_topic=per_topic or 3, profile=profile)
+
+@app.post("/api/v2/diagnostic/evaluate")
+def v2_diagnostic_evaluate(req: DiagnosticSubmitRequest):
+    profile = None
+    try:
+        from services.resume_profile import get_profile
+        profile = get_profile(req.userId)
+    except Exception:
+        profile = None
+    return score_baseline(req.answers, role=req.role, profile=profile)
+
+@app.get("/api/v2/quiz/next")
+def v2_quiz_next(userId: str, role: Optional[str] = "Software Engineer"):
+    card = get_role_card(role or "Software Engineer")
+    required = list(card.get("topics", {}).keys())
+    db = SessionLocal()
+    try:
+        states = db.query(UserTopicState).filter(UserTopicState.user_id == userId).all()
+        weak = [s.topic_id for s in states if s.mastery_score < 50 and s.topic_id in required]
+        mastery = min([s.mastery_score for s in states if s.topic_id in required], default=0)
+        difficulty = pick_difficulty(mastery)
+        reason_suffix = ""
+        if not states:
+            # First session with a resume profile: start from calibrated floor.
+            try:
+                from services.resume_profile import get_profile
+                prof = get_profile(userId)
+                floors = [a.get("start_difficulty", "Beginner") for a in (prof or {}).get("topic_adjustments", {}).values()]
+                if floors:
+                    order = ["Beginner", "Intermediate", "Expert"]
+                    difficulty = sorted(floors, key=order.index)[-1]
+                    reason_suffix = " (resume-calibrated start)"
+            except Exception:
+                pass
+        nxt = pick_next_topic(weak, states=states, required_topics=required)
+        return {**nxt, "difficulty": difficulty, "role": role, "reason": nxt.get("reason", "") + reason_suffix}
+    finally:
+        db.close()
+
+@app.get("/api/v2/quiz/generate")
+def v2_quiz_generate(topic: str, role: Optional[str] = "all", userId: Optional[str] = None):
+    mastery = 0
+    if userId:
+        db = SessionLocal()
+        try:
+            st = db.query(UserTopicState).filter(
+                UserTopicState.user_id == userId, UserTopicState.topic_id == topic
+            ).first()
+            mastery = st.mastery_score if st else 0
+        finally:
+            db.close()
+    return generate_personalized_quiz(topic, role=role or "all", mastery_score=mastery)
+
+@app.get("/api/taxonomy")
+def get_taxonomy():
+    return {"departments": DEPARTMENTS, "role_cards": ROLE_CARDS}
+
+# ---------------------------------------------------------------------------
+# 12. Resume-calibrated hybrid quiz (Phase C — append-only, v1/v2 defaults unchanged)
+# ---------------------------------------------------------------------------
+@app.post("/api/v2/profile/resume")
+async def v2_upload_resume(
+    userId: str = Form(...),
+    role: str = Form(...),
+    file: UploadFile = File(...),
+    admin: str = Depends(_admin_guard),
+):
+    """Admin uploads a hire's resume. Raw text is never stored, logged, or indexed."""
+    from services.resume_profile import extract_profile, map_to_role_card, save_profile
+
+    file_bytes = await file.read()
+    try:
+        text = extract_text(file_bytes, file.filename or "resume.txt")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not parse resume file (PDF/DOCX/TXT only)")
+    profile = extract_profile(text)
+    if not profile:
+        raise HTTPException(status_code=422, detail="No usable signal in resume — baseline will use the default role card")
+    adjustments = map_to_role_card(profile, role)
+    record = save_profile(userId, role, profile, adjustments)
+    return {"success": True, "profile": record}
+
+@app.get("/api/v2/profile/{userId}")
+def v2_get_profile(userId: str, admin: str = Depends(_admin_guard)):
+    from services.resume_profile import get_profile
+
+    record = get_profile(userId)
+    if not record:
+        raise HTTPException(status_code=404, detail="No resume profile for user")
+    return record
+
+@app.delete("/api/v2/profile/{userId}")
+def v2_delete_profile(userId: str, admin: str = Depends(_admin_guard)):
+    from services.resume_profile import delete_profile
+
+    if not delete_profile(userId):
+        raise HTTPException(status_code=404, detail="No resume profile for user")
+    return {"success": True, "deleted": userId}
 
 if __name__ == "__main__":
     import uvicorn
