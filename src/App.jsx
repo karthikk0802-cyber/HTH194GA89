@@ -30,6 +30,16 @@ function MainApp() {
   const [selectedRole, setSelectedRole] = useState(user?.role || 'Software Engineer');
   const [selectedQuizTopic, setSelectedQuizTopic] = useState('');
   const [adminView, setAdminView] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('onboardiq_sidebar') === 'collapsed'
+  );
+
+  const toggleSidebar = () => {
+    setCollapsed((c) => {
+      localStorage.setItem('onboardiq_sidebar', !c ? 'collapsed' : 'open');
+      return !c;
+    });
+  };
 
   // Role is admin-assigned: view always follows the logged-in user's record.
   useEffect(() => {
@@ -109,9 +119,9 @@ function MainApp() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${collapsed ? ' rail' : ''}`}>
       {user?.must_change_password && <ChangePassword forced />}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={isAdmin} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={isAdmin} collapsed={collapsed} onToggle={toggleSidebar} />
       <div className="main-content-wrapper">
         <Navbar
           activeTab={activeTab}

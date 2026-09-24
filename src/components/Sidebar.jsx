@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './Sidebar.css';
 
-export default function Sidebar({ activeTab, setActiveTab, isAdmin }) {
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem('onboardiq_sidebar') === 'collapsed'
-  );
-
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem('onboardiq_sidebar', next ? 'collapsed' : 'open');
-  };
-
+export default function Sidebar({ activeTab, setActiveTab, isAdmin, collapsed, onToggle }) {
   const learnerNav = [
     { section: 'Learn' },
     { id: 'dashboard', label: 'Dashboard' },
@@ -48,7 +38,7 @@ export default function Sidebar({ activeTab, setActiveTab, isAdmin }) {
           </>
         )}
         {collapsed && <span>O<span className="brand-dot">.</span></span>}
-        <button className="collapse-btn" onClick={toggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
+        <button className="collapse-btn" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
           {collapsed ? '→' : '←'}
         </button>
       </div>

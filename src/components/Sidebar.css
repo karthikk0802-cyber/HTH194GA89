@@ -5,9 +5,12 @@
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  position: sticky;
+  height: 100vh;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
   font-family: var(--mono);
 }
 
@@ -33,7 +36,7 @@
   margin-top: 4px;
 }
 
-.sidebar-nav { padding: var(--space-2); flex: 1; }
+.sidebar-nav { padding: var(--space-2); flex: 1; overflow-y: auto; }
 
 .nav-section-title {
   font-size: 11px;
