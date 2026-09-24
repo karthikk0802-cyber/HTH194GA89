@@ -36,14 +36,20 @@ function MainApp() {
     if (user?.role) setSelectedRole(user.role);
   }, [user?.role]);
 
+  // Admins get the admin portal only — no learner content.
+  const ADMIN_TABS = ['admin-users', 'admin'];
+  useEffect(() => {
+    if (isAdmin && !ADMIN_TABS.includes(activeTab)) setActiveTab('admin-users');
+  }, [isAdmin]);
+
   if (!isAuthenticated) {
     if (adminView) return <AdminLogin onBack={() => setAdminView(false)} />;
     return <Login onAdmin={() => setAdminView(true)} />;
   }
 
   const renderContent = () => {
-    if (activeTab === 'admin-users') {
-      if (!isAdmin) return <Dashboard selectedRole={selectedRole} setActiveTab={setActiveTab} />;
+    if (isAdmin) {
+      if (activeTab === 'admin') return <AdminCenter />;
       return <UserManagement />;
     }
     switch (activeTab) {
@@ -105,7 +111,7 @@ function MainApp() {
   return (
     <div className="app-layout">
       {user?.must_change_password && <ChangePassword forced />}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={isAdmin} />
       <div className="main-content-wrapper">
         <Navbar
           activeTab={activeTab}

@@ -57,4 +57,32 @@
   color: var(--muted);
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
+
+.sidebar.collapsed { width: 56px; }
+.sidebar.collapsed .sidebar-brand {
+  padding: var(--space-2) 0;
+  text-align: center;
+  font-size: 14px;
+}
+.sidebar.collapsed .nav-item {
+  text-align: center;
+  padding: 9px 0;
+  font-size: 14px;
+}
+.sidebar.collapsed .sidebar-footer { justify-content: center; }
+
+.collapse-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 2px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.collapse-btn:hover { color: var(--ink); border-color: var(--accent); }
