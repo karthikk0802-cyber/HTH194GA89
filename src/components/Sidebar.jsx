@@ -48,6 +48,9 @@ export default function Sidebar({ activeTab, setActiveTab, isAdmin }) {
           </>
         )}
         {collapsed && <span>O<span className="brand-dot">.</span></span>}
+        <button className="collapse-btn" onClick={toggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
+          {collapsed ? '→' : '←'}
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -73,15 +76,8 @@ export default function Sidebar({ activeTab, setActiveTab, isAdmin }) {
       </nav>
 
       <div className="sidebar-footer">
-        {!collapsed && (
-          <>
-            <span>Adaptive engine</span>
-            <span>v2.0</span>
-          </>
-        )}
-        <button className="collapse-btn" onClick={toggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
-          {collapsed ? '→' : '←'}
-        </button>
+        <span>Adaptive engine</span>
+        <span>v2.0</span>
       </div>
     </aside>
   );

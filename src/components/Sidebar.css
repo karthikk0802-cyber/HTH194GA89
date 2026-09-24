@@ -17,6 +17,10 @@
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .sidebar-brand .brand-dot { color: var(--accent); }
