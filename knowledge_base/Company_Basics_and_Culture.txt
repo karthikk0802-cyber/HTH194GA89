@@ -1,0 +1,25 @@
+Title: Company Basics and Culture
+Role: all
+Date: 2026-09-24
+----------------------------------------
+
+1. Company Overview and Mission
+Nexora is an enterprise-grade cloud innovation platform founded to simplify distributed systems, adaptive learning, and intelligent automation. Our mission is to empower global teams with resilient software architecture, transparent operations, and psychological safety.
+
+2. Core Cultural Pillars
+• Ownership: Every team member owns their outcomes end-to-end.
+• Transparency: Default to open communication and documented decisions.
+• Empathy: Treat colleagues and users with continuous respect and active listening.
+• Continuous Innovation: Encourage calculated risk-taking, fast feedback loops, and blameless retrospectives.
+
+3. Working Hours and Core Collaboration Window
+Nexora operates on a flexible, asynchronous-first schedule with a designated Core Collaboration Window from 10:00 AM to 3:00 PM EST (Monday through Friday). All synchronous meetings, sprint ceremonies, and cross-functional alignments must be scheduled within this window. Outside core hours, employees have complete autonomy over their working hours.
+
+4. Onboarding Milestones (30-60-90 Days)
+• Day 1-30: Complete compliance training, environment setup, attend welcome mentor sessions, and submit first peer-reviewed PR.
+• Day 31-60: Drive independent feature tasks, participate in on-call shadow rotations, and contribute to sprint planning.
+• Day 61-90: Lead a technical design or operational improvement initiative, present at engineering demo day, and complete the role readiness assessment.
+
+5. Communication and Perks
+Company all-hands meetings take place bi-weekly on Thursdays at 2:00 PM EST with open AMA (Ask Me Anything) sessions. Every employee is assigned a dedicated onboarding buddy during their first 90 days.
+

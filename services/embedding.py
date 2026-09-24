@@ -44,3 +44,16 @@ def delete_document_from_chroma(doc_id):
     """Remove all chunks associated with a document ID."""
     col = get_collection()
     col.delete(where={"doc_id": str(doc_id)})
+
+def reset_collection():
+    """Clear all documents from the ChromaDB collection."""
+    global _collection
+    import chromadb
+    client = chromadb.PersistentClient(path=CHROMA_DATA_PATH)
+    try:
+        client.delete_collection("nexora_knowledge_base")
+    except Exception:
+        pass
+    _collection = None
+    return get_collection()
+

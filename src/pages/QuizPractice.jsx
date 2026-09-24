@@ -2,9 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 
+const TOPIC_ID_MAP = {
+  'Company Basics': 'company_basics',
+  'Security & Compliance': 'security',
+  'Tools & Workflows': 'tools',
+  'Git Workflow': 'git_workflow',
+  'Architecture Standards': 'architecture',
+  'Deployment & CI/CD': 'deployment',
+  'Product Triage': 'product_triage',
+  'Sales Playbook': 'sales_playbook'
+};
+
 export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
-  const { user } = useAuth();
-  const [topic, setTopic] = useState(selectedQuizTopic || 'Security & Compliance');
+  const { user, refreshProfile } = useAuth();
+  const [topic, setTopic] = useState(selectedQuizTopic || 'Company Basics');
   const [difficulty, setDifficulty] = useState('Beginner');
   const [loading, setLoading] = useState(false);
   const [quiz, setQuiz] = useState(null);
@@ -24,10 +35,10 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
   const topicsList = [
+    'Company Basics',
     'Security & Compliance',
     'Git Workflow',
     'Deployment & CI/CD',
-    'Company Basics',
     'Architecture Standards',
     'Tools & Workflows',
     'Product Triage',
@@ -67,9 +78,12 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
 
     setSubmitting(true);
     try {
-      const topicId = topic.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
+      const topicId = TOPIC_ID_MAP[topic] || topic.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
       const res = await api.submitQuiz(user?.username || 'demo_user', topicId, selectedAnswer, quiz.correct_answer);
       setSubmissionResult(res);
+      if (res.xp_gained > 0) {
+        refreshProfile();
+      }
 
       if (!res.is_correct) {
         // Fetch remediation
@@ -82,6 +96,7 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
       setSubmitting(false);
     }
   };
+
 
   const handleExplainAgain = async () => {
     setLoadingExplain(true);

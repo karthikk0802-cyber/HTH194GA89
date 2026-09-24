@@ -1,0 +1,14 @@
+Title: Sales Playbook
+Role: sales
+Date: 2026-09-24
+----------------------------------------
+
+1. Nexora Value Proposition
+Nexora provides enterprise teams with unified developer productivity, automated compliance governance, and AI-assisted onboarding, reducing engineering ramp-up time by 60%.
+
+2. Qualification Framework (MEDDIC)
+Sales reps qualify enterprise opportunities using MEDDIC: Metrics, Economic Buyer, Decision Criteria, Decision Process, Identify Pain, and Champion.
+
+3. Discount Approval Matrix
+Discounts up to 10% can be approved by Account Executives; 11-20% requires Sales Director sign-off; discounts exceeding 20% require VP of Sales and CFO approval.
+

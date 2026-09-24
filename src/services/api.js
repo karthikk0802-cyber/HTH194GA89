@@ -35,12 +35,14 @@ export const api = {
   // Roles & Diagnostic
   getRoles: () => request('/roles'),
   getRoleTopics: (role) => request(`/roles/${encodeURIComponent(role)}/topics`),
-  getDiagnosticQuestions: () => request('/diagnostic/questions'),
+  getDiagnosticQuestions: (role = 'Software Engineer', count = 10) =>
+    request(`/diagnostic/questions?role=${encodeURIComponent(role)}&count=${encodeURIComponent(count)}`),
   submitDiagnostic: (userId, role, answers) =>
     request('/diagnostic/evaluate', {
       method: 'POST',
       body: JSON.stringify({ userId, role, answers })
     }),
+
 
   // Learning Path & Adaptive
   getLearningPath: (userId, role) =>

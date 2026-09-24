@@ -3,4 +3,12 @@ Role: engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Use Docker for local dev. Production access requires VPN and MFA.
+1. Local Development Environment
+Engineers use Docker Desktop or OrbStack to spin up local database, cache, and service dependencies via 'docker-compose up -d'. Standard package managers are Node (pnpm / npm), Go (go modules), and Python (uv / pip).
+
+2. Secrets Management & Vault
+Local development secrets must never be committed to repositories or shared in Slack. Secrets are fetched dynamically via HashiCorp Vault CLI or 1Password developer plugins.
+
+3. Pre-Commit Hooks
+All repositories configure 'pre-commit' hooks to run linter checks, GPG sign validation, and secret detection scans (TruffleHog) before code can be committed locally.
+

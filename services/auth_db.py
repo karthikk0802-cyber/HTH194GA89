@@ -76,7 +76,7 @@ def seed_default_auth_users():
                     "username": "manager",
                     "email": "manager@nexora.com",
                     "password": "password123",
-                    "full_name": "Elena Rostova",
+                    "full_name": "Sadhana",
                     "role": "Manager",
                     "department": "Engineering Leadership",
                     "is_admin": True
@@ -85,7 +85,7 @@ def seed_default_auth_users():
                     "username": "admin",
                     "email": "admin@nexora.com",
                     "password": "admin123",
-                    "full_name": "System Administrator",
+                    "full_name": "Karthik",
                     "role": "Admin",
                     "department": "IT & SecOps",
                     "is_admin": True

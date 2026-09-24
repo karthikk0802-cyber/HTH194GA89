@@ -3,4 +3,12 @@ Role: engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Engineers get an extra $500 per on-call week.
+1. On-Call Rotation Structure
+Engineering services participate in a 7-day weekly on-call rotation with a Primary and Secondary engineer. Schedules are published 6 weeks in advance via PagerDuty.
+
+2. Financial Compensation
+Engineers receive an additional $500 USD stipend per completed on-call week, paid on the subsequent payroll cycle.
+
+3. Time in Lieu & Recovery
+If an on-call engineer is paged during the night (10:00 PM to 7:00 AM) to resolve a Sev1/Sev2 incident, they are entitled to take the morning off (up to 4 hours) as paid recovery time.
+

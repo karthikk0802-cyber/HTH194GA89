@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -18,15 +18,34 @@ export const AuthProvider = ({ children }) => {
   });
   
   const [token, setToken] = useState(() => localStorage.getItem('onboardiq_token') || 'demo_token');
+  const [profileStats, setProfileStats] = useState({ xp: 0, level: 1, streak_days: 1 });
   const [loading, setLoading] = useState(false);
+
+  const fetchProfileStats = useCallback(async (username, role) => {
+    if (!username) return;
+    try {
+      const data = await api.getDashboardSummary(username, role || 'Software Engineer');
+      if (data) {
+        setProfileStats({
+          xp: data.xp || 0,
+          level: data.level || 1,
+          streak_days: data.streak_days || 1,
+          readiness_percentage: data.readiness_percentage || 0
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch user profile stats:', err);
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
       localStorage.setItem('onboardiq_user', JSON.stringify(user));
+      fetchProfileStats(user.username, user.role);
     } else {
       localStorage.removeItem('onboardiq_user');
     }
-  }, [user]);
+  }, [user, fetchProfileStats]);
 
   useEffect(() => {
     if (token) {
@@ -42,6 +61,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.login(username, password);
       setUser(res.user);
       setToken(res.token);
+      await fetchProfileStats(res.user.username, res.user.role);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message || 'Login failed' };
@@ -56,6 +76,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.register(userData);
       setUser(res.user);
       setToken(res.token);
+      await fetchProfileStats(res.user.username, res.user.role);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message || 'Registration failed' };
@@ -67,6 +88,7 @@ export const AuthProvider = ({ children }) => {
   const quickSwitchUser = (selectedUser) => {
     setUser(selectedUser);
     setToken(`token_${selectedUser.username}_${selectedUser.id}`);
+    fetchProfileStats(selectedUser.username, selectedUser.role);
   };
 
   const logout = () => {
@@ -79,6 +101,21 @@ export const AuthProvider = ({ children }) => {
   const updateRole = (newRole) => {
     if (user) {
       setUser(prev => ({ ...prev, role: newRole }));
+      fetchProfileStats(user.username, newRole);
+    }
+  };
+
+  const updateXpPoints = (newXp, newLevel) => {
+    setProfileStats(prev => ({
+      ...prev,
+      xp: newXp !== undefined ? newXp : prev.xp,
+      level: newLevel !== undefined ? newLevel : (newXp !== undefined ? Math.floor(newXp / 100) + 1 : prev.level)
+    }));
+  };
+
+  const refreshProfile = () => {
+    if (user) {
+      fetchProfileStats(user.username, user.role);
     }
   };
 
@@ -86,12 +123,15 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user,
       token,
+      profileStats,
       loading,
       login,
       register,
       quickSwitchUser,
       logout,
       updateRole,
+      updateXpPoints,
+      refreshProfile,
       isAuthenticated: !!user
     }}>
       {children}

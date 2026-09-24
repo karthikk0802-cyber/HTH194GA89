@@ -3,4 +3,15 @@ Role: devops,engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Deployments happen Tuesdays and Thursdays. No Friday deployments without VP approval.
+1. Deployment Schedule & Cadence
+Standard production deployments take place on Tuesdays and Thursdays between 10:00 AM and 2:00 PM EST. Friday deployments, weekend deployments, and deployments after 3:00 PM EST are strictly prohibited to prevent off-hours incidents.
+
+2. Emergency Out-of-Band Hotfixes
+Emergency hotfixes outside the scheduled deployment window require explicit written approval from the Engineering VP or Director of Infrastructure in the #hotfix-approvals channel.
+
+3. Progressive Rollout & Canary Strategy
+Deployments follow a canary progression: 5% traffic for 15 minutes -> 25% for 30 minutes -> 100% full rollout. Automated health checks monitor HTTP 5xx error rates, latency p99, and CPU/memory saturation.
+
+4. Automated Rollback Criteria
+If error rates exceed 0.5% or p99 latency increases by >25% during canary rollout, the automated CD pipeline immediately triggers a 1-click rollback to the previous stable release artifact.
+

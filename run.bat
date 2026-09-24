@@ -17,9 +17,8 @@ echo [2/3] Starting Python FastAPI Backend Server on port 8000...
 start "OnboardIQ Backend API (Port 8000)" cmd /k "python server.py"
 
 echo [3/3] Starting React 19 Frontend on port 5173...
-cd frontend
 start "OnboardIQ React Frontend (Port 5173)" cmd /k "npm run dev"
-cd ..
+
 
 echo.
 echo ===================================================

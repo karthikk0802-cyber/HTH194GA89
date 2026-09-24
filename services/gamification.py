@@ -8,8 +8,12 @@ def award_xp(profile, action, score=None):
         xp_gained = 15
     elif action == "scenario_completed":
         xp_gained = 50 + (score // 2 if score else 0)
+    elif action == "preassessment_completed":
+        xp_gained = score if score is not None else 50
     elif action == "daily_login":
         xp_gained = 10
+    else:
+        xp_gained = score if score is not None else 10
         
     profile.xp += xp_gained
     
@@ -19,6 +23,7 @@ def award_xp(profile, action, score=None):
         profile.level = new_level
         
     return xp_gained
+
 
 def check_streak(profile):
     """Check and update login streaks."""

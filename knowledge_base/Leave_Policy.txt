@@ -3,4 +3,15 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Request leave in Workday at least 2 weeks in advance for planned vacations.
+1. Paid Time Off (PTO) Structure
+Nexora provides unlimited flexible PTO. Employees are encouraged to take at least 4 to 5 weeks off per calendar year. All planned PTO must be entered in Workday at least 2 weeks prior to departure.
+
+2. Sick Leave & Mental Health Days
+Employees are provided up to 10 paid sick and mental health wellness days annually without requiring medical certificate documentation for absences under 3 consecutive days.
+
+3. Parental & Family Leave
+Nexora offers 16 weeks of 100% paid parental leave for all new parents (birth, adoption, or surrogacy), eligible after 90 days of continuous employment.
+
+4. Bereavement and Civic Duty Leave
+Up to 5 paid days of bereavement leave are granted for immediate family members. Paid time off is also provided for jury duty and public elections.
+

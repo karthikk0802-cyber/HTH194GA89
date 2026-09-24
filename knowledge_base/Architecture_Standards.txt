@@ -3,4 +3,15 @@ Role: engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Microservices in Go, frontend in React, ML services in Python. GraphQL for API gateway.
+1. Architectural Paradigm
+Nexora systems follow a decoupled, microservices architecture. Core backend services are written in Go for high-throughput concurrency, machine learning & analytics pipelines in Python 3.11+, and frontend web applications in React 19 / TypeScript with Vite.
+
+2. API Gateway & Communication
+External and frontend-to-backend communication uses GraphQL and REST over HTTPS with strict OpenAPI / JSON schema validation. Inter-service backend communication uses gRPC with Protocol Buffers and Kafka message streams for asynchronous event-driven workflows.
+
+3. Database & Caching Standards
+Transactional persistence uses PostgreSQL 16 with read replicas and connection pooling via PgBouncer. Caching layers utilize Redis clusters with defined TTL policies. Vector search is powered by ChromaDB / pgvector.
+
+4. Infrastructure & Container Orchestration
+All workloads run as Docker containers orchestrated via Kubernetes (EKS/GKE). Infrastructure is provisioned strictly via Terraform (Infrastructure as Code).
+

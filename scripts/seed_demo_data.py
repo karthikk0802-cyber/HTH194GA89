@@ -1,6 +1,13 @@
+import os
+import sys
+
+# Ensure root directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from services.db import get_db, UserProfileModel, UserTopicState
 import json
 from datetime import datetime, timedelta
+
 
 def seed_demo_users():
     db = next(get_db())

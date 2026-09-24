@@ -141,11 +141,16 @@ def test_adaptive_spaced_repetition_intervals():
 # -------------------------------------------------------------
 def test_diagnostic_evaluation():
     perfect_answers = {q["id"]: q["answer"] for q in DIAGNOSTIC_QUESTIONS}
-    bypassed = evaluate_diagnostic(perfect_answers)
+    res = evaluate_diagnostic(perfect_answers)
+    bypassed = res["bypassed_topics"] if isinstance(res, dict) else res
     assert "company_basics" in bypassed
     assert "security" in bypassed
     assert "tools" in bypassed
     assert "git_workflow" in bypassed
+    if isinstance(res, dict):
+        assert res["correct_count"] == 10
+        assert res["score_percentage"] == 100
+        assert res["xp_to_award"] >= 100
 
 def test_diagnostic_partial_answers():
     # Only answer company_basics correctly
@@ -153,9 +158,13 @@ def test_diagnostic_partial_answers():
         "q1": "10 AM to 3 PM EST",
         "q6": "$50/month"
     }
-    bypassed = evaluate_diagnostic(partial_answers)
+    res = evaluate_diagnostic(partial_answers)
+    bypassed = res["bypassed_topics"] if isinstance(res, dict) else res
     assert "company_basics" in bypassed
     assert "security" not in bypassed
+    if isinstance(res, dict):
+        assert res["correct_count"] == 2
+
 
 # -------------------------------------------------------------
 # 5. Readiness Evaluation Tests
@@ -239,22 +248,23 @@ def test_voice_graceful_degradation():
     assert "What is GitFlow?" in valid_res
 
 def test_rag_evidence_confidence_scoring():
-    # Strong (< 0.3)
+    # Strong (< 0.35)
     res_strong = {"documents": [["doc1"]], "distances": [[0.15, 0.22]]}
     assert determine_evidence_confidence(res_strong) == "Strong"
     
-    # Moderate (< 0.5)
-    res_mod = {"documents": [["doc1"]], "distances": [[0.35, 0.42]]}
+    # Moderate (< 0.60)
+    res_mod = {"documents": [["doc1"]], "distances": [[0.40, 0.45]]}
     assert determine_evidence_confidence(res_mod) == "Moderate"
     
-    # Limited (< 0.7)
-    res_lim = {"documents": [["doc1"]], "distances": [[0.55, 0.65]]}
+    # Limited (< 0.85)
+    res_lim = {"documents": [["doc1"]], "distances": [[0.65, 0.75]]}
     assert determine_evidence_confidence(res_lim) == "Limited"
     
-    # Insufficient (>= 0.7 or empty)
-    res_ins = {"documents": [["doc1"]], "distances": [[0.85, 0.90]]}
-    assert determine_evidence_confidence(res_ins) == "Insufficient"
-    assert determine_evidence_confidence(None) == "Insufficient"
+    # General AI Guidance (>= 0.85 or empty)
+    res_ins = {"documents": [["doc1"]], "distances": [[0.90, 0.95]]}
+    assert determine_evidence_confidence(res_ins) == "General AI Guidance"
+    assert determine_evidence_confidence(None) == "General AI Guidance"
+
 
 def test_scenarios_structure():
     assert "security" in SCENARIOS
@@ -280,3 +290,70 @@ def test_auth_database_isolation():
         assert users_count >= 1
     finally:
         adb.close()
+
+# -------------------------------------------------------------
+# 9. Targeted Regression Tests for 4 Rectified Issues
+# -------------------------------------------------------------
+def test_company_basics_evaluation_and_marking():
+    """Verify Error 1 fix: Company basics answers are robustly evaluated and marked."""
+    from services.diagnostic import evaluate_diagnostic, is_answer_match
+    
+    # Test normalization & answer matching
+    assert is_answer_match("10 AM to 3 PM EST", "10:00 AM to 3:00 PM EST") is True
+    assert is_answer_match("$50/month", "$50/month") is True
+    assert is_answer_match("A) 10 AM to 3 PM EST", "10 AM to 3 PM EST") is True
+    
+    answers = {
+        "cb_1": "10:00 AM to 3:00 PM EST",
+        "cb_2": "$50/month",
+        "cb_3": "$500 USD"
+    }
+    result = evaluate_diagnostic(answers, role="Software Engineer")
+    assert "company_basics" in result["bypassed_topics"]
+    assert result["correct_count"] == 3
+    assert result["score_percentage"] == 100
+    assert result["xp_to_award"] >= 80
+
+def test_dynamic_preassessment_questions_and_xp_marks():
+    """Verify Error 2 fix: Dynamic questions for roles with customizable count and XP calculation."""
+    from services.diagnostic import get_diagnostic_questions_for_role
+    
+    q_5 = get_diagnostic_questions_for_role("Software Engineer", count=5)
+    assert len(q_5) == 5
+    
+    q_15 = get_diagnostic_questions_for_role("DevOps Engineer", count=15)
+    assert len(q_15) == 15
+    
+    # Check topics are aligned with the role
+    topics_in_quiz = {q["topic"] for q in q_5}
+    assert "company_basics" in topics_in_quiz or "security" in topics_in_quiz
+
+def test_knowledge_coach_answers_any_query():
+    """Verify Error 3 fix: Knowledge coach answers both company specifics and general queries."""
+    from services.rag import generate_rag_response
+    
+    # Specific company query
+    res_company = generate_rag_response("What is the internet stipend at Nexora?", role="all")
+    assert res_company["answer"] != ""
+    assert "insufficient information" not in res_company["answer"].lower()
+    
+    # General employee onboarding/engineering query
+    res_general = generate_rag_response("What are best practices for writing clean code and unit testing in Go?", role="engineering")
+    assert res_general["answer"] != ""
+    assert len(res_general["answer"]) > 50
+
+def test_adaptive_quiz_generator_diversity():
+    """Verify Error 4 fix: Quiz generator generates distinct topic-specific questions from vector embeddings."""
+    from services.quiz_generator import generate_quiz_for_topic
+    
+    # Test multiple topics
+    quiz_cb = generate_quiz_for_topic("Company Basics", role="all", difficulty="Beginner")
+    assert "question" in quiz_cb
+    assert "options" in quiz_cb
+    assert len(quiz_cb["options"]) == 4
+    assert quiz_cb["correct_answer"] in quiz_cb["options"]
+    
+    quiz_sec = generate_quiz_for_topic("Security & Compliance", role="all", difficulty="Intermediate")
+    assert "question" in quiz_sec
+    assert quiz_sec["question"] != ""
+

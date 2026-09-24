@@ -3,4 +3,18 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Welcome to Nexora. Core hours are 10 AM to 3 PM EST. Unlimited PTO policy...
+1. Welcome to Nexora
+Welcome to the Nexora team. This handbook sets forth the foundational policies, expectations, and benefits for all full-time and contractual employees.
+
+2. Working Hours & Attendance
+Core collaboration hours are 10:00 AM to 3:00 PM EST. Flexible working arrangements allow team members to complete their 40-hour work week according to their local preferences while maintaining presence during core hours.
+
+3. Flexible Paid Time Off (PTO)
+Nexora offers an Unlimited Flexible Paid Time Off policy for all full-time employees. We recommend taking a minimum of 20 PTO days annually to maintain work-life balance. Planned vacations over 3 consecutive days must be submitted via Workday at least 2 weeks in advance.
+
+4. Professional Development & Learning Stipend
+Every full-time employee receives an annual $1,500 USD Professional Development Stipend for conferences, certifications, books, and courses. Approvals are managed through the People Ops portal.
+
+5. Equal Opportunity and Anti-Harassment
+Nexora is committed to maintaining a safe, inclusive, and harassment-free workplace. Any discriminatory behavior, harassment, or retaliation will result in immediate disciplinary action up to termination.
+

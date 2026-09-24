@@ -3,4 +3,15 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Nexora is remote-first. Ergonomic equipment stipend is $500. Internet stipend is $50/month.
+1. Remote-First Philosophy
+Nexora is a remote-first organization. Employees can work from any approved domestic or international location with reliable high-speed internet (>50 Mbps download / >10 Mbps upload).
+
+2. Equipment and Home Office Stipend
+Upon joining, every full-time employee is eligible for a one-time $500 USD Ergonomic Home Office Stipend for desks, chairs, monitors, and peripherals. Company-issued MacBook Pro or ThinkPad workstations are provided directly by IT Ops.
+
+3. Monthly Internet Allowance
+Nexora provides a monthly recurring $50 USD internet stipend to subsidize high-speed residential broadband. This allowance is automatically reimbursed on monthly payroll.
+
+4. Coworking Space Subsidies
+Employees who prefer working outside the home can expense up to $250 USD per month for hot-desk memberships at certified coworking spaces (e.g. WeWork, Industrious).
+

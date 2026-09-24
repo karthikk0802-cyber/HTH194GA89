@@ -3,4 +3,12 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Use Slack for async communication. Email for external clients. Zoom for sync meetings.
+1. Channel Standards
+• Slack: Primary platform for internal real-time and asynchronous messaging. Use public channels by default; reserve DMs for 1-on-1s and private feedback.
+• Email: Reserved for external vendors, formal HR announcements, and legal communication.
+• Zoom / Google Meet: Used for synchronous meetings with video-on preference during standups.
+• Notion / Confluence: Single source of truth for documentation, RFCs, and engineering specifications.
+
+2. Slack Etiquette
+Always use message threads to keep channels readable. Use status indicators (e.g. 🌴 Vacation, 🎧 Deep Work, 🥪 Lunch) to manage availability expectations.
+

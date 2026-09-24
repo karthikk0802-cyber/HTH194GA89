@@ -17,8 +17,12 @@ from services.db import (
     get_db, DocumentModel, QuizFeedbackModel, UserTopicState, UserProfileModel, SessionLocal
 )
 from services.roles import ROLES, TOPICS, get_role_topics
-from services.diagnostic import DIAGNOSTIC_QUESTIONS, evaluate_diagnostic
+from services.diagnostic import (
+    DIAGNOSTIC_QUESTIONS, evaluate_diagnostic, get_diagnostic_questions_for_role, is_answer_match
+)
 from services.adaptive import build_competency_graph, update_topic_state, rank_next_topics
+
+
 from services.readiness import compute_readiness, generate_readiness_report_md
 from services.gamification import award_xp, check_streak, update_badges
 from services.resources import CURATED_RESOURCES, get_resources_for_topic
@@ -255,26 +259,20 @@ def get_topics_for_role(role_name: str):
     return get_role_topics(role_name)
 
 @app.get("/api/diagnostic/questions")
-def get_diagnostic_questions():
-    # Strip answers for frontend presentation
-    safe_questions = []
-    for q in DIAGNOSTIC_QUESTIONS:
-        safe_questions.append({
-            "id": q["id"],
-            "topic": q["topic"],
-            "topic_title": TOPICS.get(q["topic"], {}).get("title", q["topic"]),
-            "question": q["question"],
-            "options": q["options"]
-        })
-    return safe_questions
+def get_diagnostic_questions(role: Optional[str] = "Software Engineer", count: Optional[int] = 10):
+    return get_diagnostic_questions_for_role(role=role or "Software Engineer", count=count or 10)
 
 @app.post("/api/diagnostic/evaluate")
 def submit_diagnostic(req: DiagnosticSubmitRequest):
-    bypassed = evaluate_diagnostic(req.answers)
+    eval_data = evaluate_diagnostic(req.answers, role=req.role)
+    bypassed = eval_data["bypassed_topics"]
     role_topics = get_role_topics(req.role)
     
     # Update topic states in DB
     db = SessionLocal()
+    xp_gained = 0
+    profile_xp = 0
+    profile_level = 1
     try:
         for topic_id in role_topics:
             state = db.query(UserTopicState).filter(
@@ -294,15 +292,25 @@ def submit_diagnostic(req: DiagnosticSubmitRequest):
             else:
                 if state.status == "Locked":
                     # If prerequisite met or base topic, unlock
-                    prereqs = TOPICS[topic_id]["prerequisites"]
+                    prereqs = TOPICS.get(topic_id, {}).get("prerequisites", [])
                     if not prereqs or all(p in bypassed for p in prereqs):
                         state.status = "Current"
                         state.difficulty = "Beginner"
         
-        # Award XP for completing diagnostic
+        # Award XP for completing diagnostic based on score/marks
         profile = db.query(UserProfileModel).filter(UserProfileModel.user_id == req.userId).first()
-        if profile:
-            award_xp(profile, "scenario_completed", score=10)
+        if not profile:
+            profile = UserProfileModel(user_id=req.userId, xp=0, level=1, streak_days=1)
+            db.add(profile)
+            
+        xp_to_add = eval_data.get("xp_to_award", (eval_data.get("correct_count", 0) * 10) + 50)
+        xp_gained = award_xp(profile, "preassessment_completed", score=xp_to_add)
+        profile_xp = profile.xp
+        profile_level = profile.level
+        
+        all_states = db.query(UserTopicState).filter(UserTopicState.user_id == req.userId).all()
+        update_badges(profile, all_states)
+        
         db.commit()
     finally:
         db.close()
@@ -310,8 +318,16 @@ def submit_diagnostic(req: DiagnosticSubmitRequest):
     return {
         "success": True,
         "bypassed_topics": [t for t in bypassed if t in role_topics],
-        "bypassed_titles": [role_topics[t]["title"] for t in bypassed if t in role_topics]
+        "bypassed_titles": [role_topics[t]["title"] for t in bypassed if t in role_topics],
+        "correct_count": eval_data.get("correct_count", 0),
+        "total_questions": eval_data.get("total_questions", len(req.answers)),
+        "score_percentage": eval_data.get("score_percentage", 0),
+        "xp_gained": xp_gained,
+        "total_xp": profile_xp,
+        "level": profile_level,
+        "evaluations": eval_data.get("evaluations", [])
     }
+
 
 # ---------------------------------------------------------------------------
 # 3. Adaptive Learning Path & Competency Graph Endpoints
@@ -404,7 +420,7 @@ def get_quiz_question(topic: str, role: Optional[str] = "all", difficulty: Optio
 
 @app.post("/api/quiz/submit")
 def submit_quiz_answer(req: QuizSubmitRequest):
-    is_correct = (req.selectedAnswer.strip() == req.correctAnswer.strip())
+    is_correct = is_answer_match(req.selectedAnswer, req.correctAnswer)
     db = SessionLocal()
     try:
         state = db.query(UserTopicState).filter(
@@ -481,8 +497,7 @@ def evaluate_scenario(req: ScenarioEvaluateRequest):
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
         
-    evidence_context = f"Topic: {scenario['topic_id']}. Official company policy mandates immediate incident containment, password rotation, and PR approvals."
-    eval_result = evaluate_scenario_response(scenario["text"], req.userResponse, evidence_context)
+    eval_result = evaluate_scenario_response(scenario["text"], req.userResponse, topic_id=scenario.get("topic_id", "security"))
     
     # Award XP & update state
     db = SessionLocal()
@@ -508,6 +523,7 @@ def evaluate_scenario(req: ScenarioEvaluateRequest):
         
     eval_result["xp_gained"] = xp_gained
     return eval_result
+
 
 @app.post("/api/voice/interact")
 def voice_tutor_interaction(req: VoiceInteractionRequest):

@@ -3,4 +3,18 @@ Role: engineering
 Date: 2026-09-24
 ----------------------------------------
 
-We use trunk-based development. All commits must be signed. PRs require 1 approval.
+1. Trunk-Based Development
+Nexora engineering adheres strictly to Trunk-Based Development. Feature branches must be short-lived (maximum lifespan of 24-48 hours) and branched directly from 'main'.
+
+2. Branch Naming Conventions
+Branches must follow standard prefixes: feature/JIRA-123-short-desc, bugfix/JIRA-123-short-desc, hotfix/JIRA-123-short-desc, or chore/JIRA-123-short-desc.
+
+3. Commit Hygiene & Mandatory Signing
+All Git commits must be cryptographically signed using GPG or SSH keys verified in GitHub. Commit messages must follow the Conventional Commits specification (feat:, fix:, docs:, refactor:, test:, chore:).
+
+4. Pull Request Requirements
+Every Pull Request (PR) requires at least 1 peer approval from an engineer in the CODEOWNERS file. All automated CI checks (linters, unit tests, security vulnerability scans, build verification) must pass with zero errors before merge.
+
+5. Merging Strategy
+Use 'Squash and Merge' for feature branches to keep the main commit log clean and linear. Rebase on main prior to final merge.
+

@@ -3,4 +3,15 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Per diem is $75 for travel. All expenses over $25 require a receipt submitted via Expensify.
+1. General Expense Principles
+Employees must exercise prudent judgment when incurring business expenses on behalf of Nexora. All expenses must be legitimate, reasonable, and substantiated.
+
+2. Receipt Requirements & Thresholds
+Itemized receipts are required for all business expenses exceeding $25 USD. Receipts must be submitted via Expensify within 30 days of the transaction date. Undocumented expenses over $25 will not be reimbursed.
+
+3. Travel & Meals Per Diem
+The standard meal per diem allowance during business travel is $75 USD per day ($20 breakfast, $25 lunch, $30 dinner). Alcohol is non-reimbursable unless part of an authorized client entertainment dinner.
+
+4. Flight & Accommodation Rules
+Economy class is standard for flights under 6 hours. Business class is permitted for international flights over 8 continuous flight hours with VP pre-approval. Hotel nightly rates should not exceed $250/night in standard cities or $350/night in tier-1 metro areas.
+

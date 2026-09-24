@@ -3,4 +3,15 @@ Role: engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Review for clarity, security, and performance. No nitpicking; use automated formatters.
+1. Review Objectives
+Code reviews ensure correctness, readability, architectural compliance, security, and test coverage (>80% required on new code).
+
+2. Review Speed and Turnaround
+PRs should be reviewed within 4 business hours during core collaboration hours. If a PR is larger than 400 lines of diff, the author must provide an architectural walkthrough or split the PR into smaller atomic increments.
+
+3. Constructive Feedback & Etiquette
+Reviewers must distinguish between blocking concerns (e.g. security vulnerability, memory leak, logic flaw) and non-blocking suggestions (prefix with 'nit: ' or 'suggestion: '). Automated formatters (Prettier, Black, GoFmt) handle styling.
+
+4. Testing Standards
+Every PR modifying business logic must include automated unit tests, and where appropriate, integration tests. Flaky tests must be quarantined and resolved immediately.
+

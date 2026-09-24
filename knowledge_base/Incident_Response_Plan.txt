@@ -3,4 +3,18 @@ Role: all
 Date: 2026-09-24
 ----------------------------------------
 
-Sev1 incidents require paging the on-call engineer via PagerDuty. Communication happens in #incidents channel.
+1. Incident Severity Definitions
+• Sev1 (Critical): Total service outage, critical data loss, or active security breach affecting >10% of customers. SLA response: < 15 minutes.
+• Sev2 (Major): Partial system degradation or core feature failure with no workaround. SLA response: < 30 minutes.
+• Sev3 (Moderate): Non-critical service failure with available workaround. SLA response: < 2 hours.
+• Sev4 (Minor): Minor UI defect or operational inconvenience. SLA response: Next business day.
+
+2. Escalation & Communication Protocol
+Sev1 and Sev2 incidents automatically trigger PagerDuty alarms to the Primary On-Call Engineer. The Primary On-Call assumes the role of Incident Commander (IC). All live coordination takes place in the dedicated Slack war room '#incidents' and an active Zoom incident bridge.
+
+3. Status Page Updates
+The Incident Commander or Communications Lead must post an initial customer-facing update to status.nexora.com within 20 minutes of Sev1 declaration and provide updates every 30 minutes until resolution.
+
+4. Blameless Post-Mortem
+For all Sev1 and Sev2 incidents, a blameless post-mortem document must be drafted within 48 hours and reviewed in the weekly Engineering Operations Review.
+

@@ -1,0 +1,11 @@
+Title: Product Triage Guide
+Role: product
+Date: 2026-09-24
+----------------------------------------
+
+1. Feature Prioritization (RICE Scoring)
+Feature proposals are prioritized using the RICE framework: (Reach × Impact × Confidence) / Effort. High-RICE initiatives are slotted into quarterly product roadmaps.
+
+2. User Feedback Loops
+Customer feature requests from Zendesk, Gong, and sales calls are aggregated in Productboard and reviewed bi-weekly with engineering leads.
+

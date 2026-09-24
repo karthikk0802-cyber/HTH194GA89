@@ -3,4 +3,12 @@ Role: product,engineering
 Date: 2026-09-24
 ----------------------------------------
 
-Bugs must have reproduction steps. Epics should be sized under 2 sprints.
+1. Ticket Creation Standards
+Every bug ticket in Jira must include: (1) Clear summary, (2) Step-by-step reproduction steps, (3) Expected behavior, (4) Actual behavior, (5) Environment/Browser details, and (6) Sentry error trace or screenshot.
+
+2. Epic & Story Sizing
+Epics must be scoped to complete within a maximum of 2 agile sprints (4 weeks). User stories must be sized in Fibonacci story points (1, 2, 3, 5, 8). Stories larger than 8 points must be broken down.
+
+3. Triage & SLA Priority
+Product managers and engineering leads triage incoming tickets daily. Blockers (P0) are assigned immediately to current sprint; P1 bugs are scheduled within 24 hours.
+

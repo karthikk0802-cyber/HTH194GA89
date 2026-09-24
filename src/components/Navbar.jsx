@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 
 export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
-  const { user, logout, quickSwitchUser } = useAuth();
+  const { user, profileStats, logout, quickSwitchUser } = useAuth();
   const [allUsers, setAllUsers] = useState([]);
   const [showSwitchModal, setShowSwitchModal] = useState(false);
 
   useEffect(() => {
     api.getUsers().then(setAllUsers).catch(console.error);
   }, []);
+
 
   const titlesMap = {
     'dashboard': 'Employee Overview & Progress',
@@ -64,6 +65,43 @@ export default function Navbar({ activeTab, selectedRole, setSelectedRole }) {
             ))}
           </select>
         </div>
+
+        {/* Live XP & Level Badges */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#a5b4fc'
+            }}>
+              <span>⚡</span>
+              <span>{profileStats?.xp || 0} XP</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#6ee7b7'
+            }}>
+              <span>⭐</span>
+              <span>Lvl {profileStats?.level || 1}</span>
+            </div>
+          </div>
+        )}
+
 
         {/* User Pill */}
         {user && (
