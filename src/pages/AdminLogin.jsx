@@ -24,14 +24,18 @@ export default function AdminLogin({ onBack }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
-        <div className="glass-card" style={{ padding: 32 }}>
-          <h1 style={{ fontSize: 22, marginBottom: 4 }}>Admin sign-in</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>
+    <div className="center" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <div className="center" style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 26 }}>OnboardIQ</h1>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Administrator access</p>
+        </div>
+        <div className="card">
+          <h3 style={{ fontSize: 16, marginBottom: 6 }}>Admin sign-in</h3>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
             Separate portal. Credentials come from server env (<code>ADMIN_USERNAME</code> / <code>ADMIN_PASSWORD</code>).
           </p>
-          {error && <div style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', color: '#fca5a5', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>⚠️ {error}</div>}
+          {error && <div className="notice notice-error">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label className="input-label">Admin username</label>
@@ -39,13 +43,13 @@ export default function AdminLogin({ onBack }) {
             </div>
             <div className="input-group">
               <label className="input-label">Admin password</label>
-              <input className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+              <input className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: 12 }} disabled={loading}>
-              {loading ? <div className="spinner" /> : 'Sign in as admin'}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: 11 }} disabled={loading}>
+              {loading ? <span className="spinner" /> : 'Sign in as admin'}
             </button>
           </form>
-          {onBack && <button className="btn btn-secondary" style={{ width: '100%', marginTop: 12 }} onClick={onBack}>← Back to user sign-in</button>}
+          {onBack && <button className="btn btn-secondary mt" style={{ width: '100%' }} onClick={onBack}>Back to user sign-in</button>}
         </div>
       </div>
     </div>

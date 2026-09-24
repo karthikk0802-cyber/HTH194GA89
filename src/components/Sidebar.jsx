@@ -7,29 +7,26 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   const isAdmin = !!user?.is_admin && (token || '').startsWith('admin_token_');
 
   const navigation = [
-    { section: 'Learner Workspace' },
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'pre-assessment', label: 'Pre-Assessment', icon: '📝' },
-    { id: 'learning-path', label: 'Learning Roadmap', icon: '🗺️' },
-    { id: 'qa', label: 'Knowledge Coach', icon: '💡' },
-    { id: 'quiz', label: 'Adaptive Quizzes', icon: '🎯' },
-    { id: 'scenarios', label: 'Applied Scenarios', icon: '🧩' },
-    { id: 'voice-resources', label: 'Voice & Resources', icon: '🎙️' },
+    { section: 'Learn' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'pre-assessment', label: 'Pre-Assessment' },
+    { id: 'learning-path', label: 'Learning Roadmap' },
+    { id: 'qa', label: 'Knowledge Coach' },
+    { id: 'quiz', label: 'Practice Quizzes' },
+    { id: 'scenarios', label: 'Applied Scenarios' },
+    { id: 'voice-resources', label: 'Voice & Resources' },
 
-    { section: 'Management & Oversight' },
-    { id: 'manager', label: 'Team Readiness', icon: '👥' },
-    { id: 'admin', label: 'Knowledge Admin', icon: '⚙️' },
-    ...(isAdmin ? [{ id: 'admin-users', label: 'User Management', icon: '🔐' }] : [])
+    { section: 'Manage' },
+    { id: 'manager', label: 'Team Readiness' },
+    { id: 'admin', label: 'Knowledge Admin' },
+    ...(isAdmin ? [{ id: 'admin-users', label: 'User Management' }] : [])
   ];
 
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="brand-icon">🎓</div>
-        <div className="brand-info">
-          <h2>OnboardIQ</h2>
-          <span>Nexora Enterprise</span>
-        </div>
+        OnboardIQ<span className="brand-dot">.</span>
+        <span className="sub">Nexora</span>
       </div>
 
       <nav className="sidebar-nav">
@@ -41,29 +38,21 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </div>
             );
           }
-
-          const isActive = activeTab === item.id;
           return (
             <div
               key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => setActiveTab(item.id)}
             >
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
+              {item.label}
             </div>
           );
         })}
       </nav>
 
       <div className="sidebar-footer">
-        <div className="footer-system-status">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="pulse-dot"></div>
-            <span>Adaptive Engine Online</span>
-          </div>
-          <span className="badge badge-indigo" style={{ padding: '2px 6px', fontSize: '10px' }}>v2.0</span>
-        </div>
+        <span>Adaptive engine</span>
+        <span>v2.0</span>
       </div>
     </aside>
   );

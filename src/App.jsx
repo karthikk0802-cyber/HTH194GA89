@@ -61,7 +61,6 @@ function MainApp() {
         return (
           <PreAssessment
             selectedRole={selectedRole}
-            setSelectedRole={setSelectedRole}
             setActiveTab={setActiveTab}
           />
         );

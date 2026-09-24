@@ -1,30 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import './Navbar.css';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
 import ChangePassword from './ChangePassword';
 
 export default function Navbar({ activeTab, selectedRole }) {
-  const { user, profileStats, logout, quickSwitchUser } = useAuth();
-  const [allUsers, setAllUsers] = useState([]);
-  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const { user, profileStats, logout } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('onboardiq_theme') || 'dark'
+  );
 
   useEffect(() => {
-    api.getUsers().then(setAllUsers).catch(console.error);
-  }, []);
-
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('onboardiq_theme', theme);
+  }, [theme]);
 
   const titlesMap = {
-    'dashboard': 'Employee Overview & Progress',
-    'pre-assessment': 'Diagnostic Pre-Assessment & Bypass',
-    'learning-path': 'Adaptive Learning Roadmap & Competency Graph',
-    'qa': 'AI Knowledge Coach (Grounded RAG)',
-    'quiz': 'Dynamic Practice Quizzes & Remediation',
-    'scenarios': 'Applied Critical Scenario Training',
-    'voice-resources': 'Voice Tutor & Curated Intranet Library',
-    'manager': 'Manager Team Readiness & Compliance Matrix',
-    'admin': 'Knowledge Base & Audit Administration'
+    'dashboard': 'Dashboard',
+    'pre-assessment': 'Pre-Assessment',
+    'learning-path': 'Learning Roadmap',
+    'qa': 'Knowledge Coach',
+    'quiz': 'Practice Quizzes',
+    'scenarios': 'Applied Scenarios',
+    'voice-resources': 'Voice & Resources',
+    'manager': 'Team Readiness',
+    'admin': 'Knowledge Admin',
+    'admin-users': 'User Management'
   };
 
   const getInitials = (name) => {
@@ -43,140 +44,37 @@ export default function Navbar({ activeTab, selectedRole }) {
       </div>
 
       <div className="navbar-right">
-        {/* Role is admin-assigned: display only, no user switching */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>ROLE:</span>
-          <span className="badge badge-indigo" style={{ fontSize: '12px' }}>{user?.role || selectedRole}</span>
-        </div>
+        <span className="badge badge-indigo">{user?.role || selectedRole}</span>
 
-        {/* Live XP & Level Badges */}
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'rgba(99, 102, 241, 0.15)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#a5b4fc'
-            }}>
-              <span>⚡</span>
-              <span>{profileStats?.xp || 0} XP</span>
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 10px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#6ee7b7'
-            }}>
-              <span>⭐</span>
-              <span>Lvl {profileStats?.level || 1}</span>
-            </div>
-          </div>
-        )}
-
-
-        {/* User Pill */}
-        {user && (
-          <div className="user-profile-menu">
-            <div className="user-avatar">{getInitials(user.full_name)}</div>
-            <div className="user-meta">
-              <span className="name">{user.full_name}</span>
-              <span className="dept">{user.department} • {user.role}</span>
-            </div>
-            <button
-              className="btn btn-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }}
-              onClick={() => setShowPasswordModal(true)}
-              title="Change password"
-            >
-              Password
-            </button>
-            <button
-              className="btn btn-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }}
-              onClick={() => setShowSwitchModal(!showSwitchModal)}
-              title="Switch user account"
-            >
-              Switch ▾
-            </button>
-            <button
-              className="btn btn-danger"
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px' }}
-              onClick={logout}
-              title="Sign out"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-
-        {/* Quick Switch Dropdown */}
-        {showPasswordModal && <ChangePassword onDone={() => setShowPasswordModal(false)} />}
-        {showSwitchModal && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '75px',
-              right: '32px',
-              width: '320px',
-              background: 'rgba(17, 24, 39, 0.98)',
-              border: '1px solid var(--border-active)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-lg)',
-              padding: '16px',
-              zIndex: 200,
-              backdropFilter: 'blur(20px)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: 700 }}>Switch Active Account</h4>
-              <button
-                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}
-                onClick={() => setShowSwitchModal(false)}
-              >
-                ✕
+          <>
+            <span className="stat-pill"><strong>{profileStats?.xp || 0}</strong>&nbsp;XP · Lv&nbsp;{profileStats?.level || 1}</span>
+            <div className="user-profile-menu">
+              <div className="user-avatar">{getInitials(user.full_name)}</div>
+              <div className="user-meta">
+                <span className="name">{user.full_name}</span>
+                <span className="dept">{user.department}</span>
+              </div>
+              <button className="btn btn-sm btn-secondary" onClick={() => setShowPasswordModal(true)}>
+                Password
+              </button>
+              <button className="btn btn-sm btn-secondary" onClick={logout}>
+                Sign out
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
-              {allUsers.map(u => (
-                <div
-                  key={u.username}
-                  onClick={() => {
-                    quickSwitchUser(u);
-                    setShowSwitchModal(false);
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-md)',
-                    background: u.username === user?.username ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid ' + (u.username === user?.username ? 'var(--border-active)' : 'transparent'),
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{u.full_name}</div>
-                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>{u.department} • {u.role}</div>
-                  </div>
-                  {u.is_admin && <span className="badge badge-amber" style={{ fontSize: '10px' }}>Admin</span>}
-                </div>
-              ))}
-            </div>
-          </div>
+          </>
         )}
+
+        <button
+          className="theme-btn"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label="Toggle theme"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+        >
+          {theme === 'dark' ? '○' : '●'}
+        </button>
+
+        {showPasswordModal && <ChangePassword onDone={() => setShowPasswordModal(false)} />}
       </div>
     </header>
   );

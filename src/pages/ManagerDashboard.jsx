@@ -47,11 +47,7 @@ export default function ManagerDashboard() {
   };
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <div className="spinner" style={{ width: '36px', height: '36px' }}></div>
-      </div>
-    );
+    return <span className="spinner spinner-lg" />;
   }
 
   const readyCount = team.filter(t => t.status === 'READY').length;
@@ -60,46 +56,35 @@ export default function ManagerDashboard() {
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1>Manager Team Readiness & Oversight</h1>
-          <p>Audit and track organizational onboarding health, compliance thresholds, and exportable reports.</p>
-        </div>
+        <h1><span className="kicker">01</span>Team readiness</h1>
+        <p>Onboarding health across the org, with exportable audits.</p>
       </div>
 
-      {/* KPI Overview */}
-      <div className="grid-4" style={{ marginBottom: '28px' }}>
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>TEAM SIZE</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#ffffff', marginTop: '4px' }}>
-            {team.length} <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Employees</span>
+      <div className="section">
+        <div className="row" style={{ gap: 48 }}>
+          <div>
+            <div className="kpi-label">Team</div>
+            <div className="kpi">{team.length}</div>
           </div>
-        </div>
-
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>FULLY READY</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#34d399', marginTop: '4px' }}>
-            {readyCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Verified</span>
+          <div>
+            <div className="kpi-label">Ready</div>
+            <div className="kpi">{readyCount}</div>
           </div>
-        </div>
-
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>IN PROGRESS / GAPS</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
-            {team.length - readyCount} <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Employees</span>
+          <div>
+            <div className="kpi-label">With gaps</div>
+            <div className="kpi">{team.length - readyCount}</div>
           </div>
-        </div>
-
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>AVG READINESS</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#818cf8', marginTop: '4px' }}>
-            {avgScore}%
+          <div>
+            <div className="kpi-label">Avg readiness</div>
+            <div className="kpi">{avgScore}%</div>
           </div>
         </div>
       </div>
 
-      {/* Team Matrix Table */}
-      <div className="glass-card" style={{ marginBottom: '28px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Team Competency Matrix</h3>
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">02</span>Roster</h3>
+        </div>
         <div className="custom-table-container">
           <table className="custom-table">
             <thead>
@@ -108,29 +93,22 @@ export default function ManagerDashboard() {
                 <th>Department</th>
                 <th>Role</th>
                 <th>Level</th>
-                <th>Readiness Score</th>
-                <th>Compliance Status</th>
-                <th>Action</th>
+                <th>Readiness</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {team.map(emp => (
-                <tr key={emp.userId} style={{ background: selectedEmp?.userId === emp.userId ? 'rgba(99, 102, 241, 0.08)' : 'transparent' }}>
+                <tr key={emp.userId}>
                   <td>
                     <strong>{emp.name}</strong>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>@{emp.userId}</div>
+                    <div className="cell-sub">@{emp.userId}</div>
                   </td>
                   <td>{emp.department}</td>
                   <td>{emp.role}</td>
                   <td>Lvl {emp.level}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '60px', height: '6px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ width: `${emp.readiness_score}%`, height: '100%', background: emp.readiness_score >= 80 ? '#10b981' : '#f59e0b', borderRadius: '999px' }}></div>
-                      </div>
-                      <span style={{ fontWeight: 700 }}>{emp.readiness_score}%</span>
-                    </div>
-                  </td>
+                  <td><strong>{emp.readiness_score}%</strong></td>
                   <td>
                     <span className={`badge ${
                       emp.status === 'READY' ? 'badge-emerald' :
@@ -140,12 +118,8 @@ export default function ManagerDashboard() {
                     </span>
                   </td>
                   <td>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '12px' }}
-                      onClick={() => handleSelectEmp(emp)}
-                    >
-                      Audit Details →
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleSelectEmp(emp)}>
+                      Audit →
                     </button>
                   </td>
                 </tr>
@@ -155,42 +129,31 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Drill Down & Export View */}
       {selectedEmp && (
-        <div className="glass-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px' }}>Individual Audit: {selectedEmp.name}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-                Role: {selectedEmp.role} • Readiness Verdict: <strong>{selectedEmp.status}</strong>
-              </p>
-            </div>
-            <button
-              className="btn btn-primary"
-              onClick={downloadReport}
-              disabled={loadingReport || !reportData}
-            >
-              📄 Export Readiness Audit Report (.MD)
+        <div className="section">
+          <div className="sec-head">
+            <h3><span className="idx">03</span>{selectedEmp.name}</h3>
+            <button className="btn btn-sm btn-primary" onClick={downloadReport} disabled={loadingReport || !reportData}>
+              Export report (.md)
             </button>
           </div>
+          <p className="sub">{selectedEmp.role} · Verdict: {selectedEmp.status}</p>
 
           {selectedEmp.missing_topics && selectedEmp.missing_topics.length > 0 && (
-            <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(239, 68, 68, 0.25)', marginBottom: '16px' }}>
-              <strong style={{ color: '#fca5a5' }}>Identified Bottlenecks & Incomplete Modules:</strong>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+            <div className="mt">
+              <span className="kpi-label">Incomplete modules</span>
+              <div className="row mt">
                 {selectedEmp.missing_topics.map((m, i) => (
-                  <span key={i} className="badge badge-rose">Needs Completion: {m}</span>
+                  <span key={i} className="badge badge-rose">{m}</span>
                 ))}
               </div>
             </div>
           )}
 
           {reportData && (
-            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <pre style={{ color: '#cbd5e1', fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                {reportData.report_markdown}
-              </pre>
-            </div>
+            <pre className="mono mt" style={{ fontSize: 12, whiteSpace: 'pre-wrap', borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+              {reportData.report_markdown}
+            </pre>
           )}
         </div>
       )}
