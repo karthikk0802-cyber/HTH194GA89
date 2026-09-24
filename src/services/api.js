@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:8000/api';
+// Dynamic API URL for local dev and production
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : 'http://localhost:8000/api';
+
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
@@ -24,12 +28,12 @@ export const api = {
   // Auth (auth.db)
   login: (username, password) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
-  
+
   register: (data) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   getUsers: () => request('/auth/users'),
-  
+
   getMe: (userId) => request(`/auth/me?userId=${encodeURIComponent(userId)}`),
 
   changePassword: (username, oldPassword, newPassword) =>
@@ -63,7 +67,7 @@ export const api = {
 
   startQuizSession: (topic, role = 'all', userId = '', count = 20, difficulty = null) =>
     request(`/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}${difficulty ? `&difficulty=${encodeURIComponent(difficulty)}` : ''}&count=${encodeURIComponent(count)}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
-  
+
   submitQuiz: (userId, topicId, selectedAnswer, correctAnswer) =>
     request('/quiz/submit', {
       method: 'POST',
