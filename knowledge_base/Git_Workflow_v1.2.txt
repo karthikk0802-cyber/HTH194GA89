@@ -1,6 +1,6 @@
 Title: Git Workflow v1.2
 Role: engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Trunk-Based Development
@@ -17,4 +17,13 @@ Every Pull Request (PR) requires at least 1 peer approval from an engineer in th
 
 5. Merging Strategy
 Use 'Squash and Merge' for feature branches to keep the main commit log clean and linear. Rebase on main prior to final merge.
+
+6. Hotfix Branches
+Emergency production fixes use hotfix/JIRA-123-short-desc branches cut directly from 'main'. They follow the same signing, review, and CI gates as features; only the deployment window differs, per the Deployment SOP out-of-band approval process.
+
+7. Release Tagging
+Each production deployment is tagged release-vX.Y.Z on main immediately after a successful canary rollout, so rollbacks and audits always reference an immutable artifact.
+
+8. CODEOWNERS Maintenance
+Every repository maintains a CODEOWNERS file mapping directories to owning teams. Ownership changes require a PR reviewed by both the outgoing and incoming owners.
 

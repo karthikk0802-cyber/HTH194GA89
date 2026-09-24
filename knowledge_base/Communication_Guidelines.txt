@@ -1,6 +1,6 @@
 Title: Communication Guidelines
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Channel Standards
@@ -11,4 +11,13 @@ Date: 2026-09-24
 
 2. Slack Etiquette
 Always use message threads to keep channels readable. Use status indicators (e.g. 🌴 Vacation, 🎧 Deep Work, 🥪 Lunch) to manage availability expectations.
+
+6. Meeting Hygiene
+Every synchronous meeting needs an agenda, a Notion notes page, and a written decision log. Recurring meetings without an agenda for two consecutive cycles are cancelled by default.
+
+7. Escalation Paths
+Production issues escalate to the #incidents war room, security anomalies to #security-alerts, and deployment exceptions to #hotfix-approvals. Routine discussion stays in topical public channels.
+
+8. External Communication
+Only designated spokespeople communicate with customers, press, or vendors on Nexora's behalf. Employees never disclose unreleased plans, customer data, or security posture outside approved channels.
 

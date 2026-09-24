@@ -1,6 +1,6 @@
 Title: Data Privacy and GDPR
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Compliance Framework
@@ -14,4 +14,13 @@ All sensitive data in transit must use TLS 1.3 encryption. All data at rest must
 
 4. Right to be Forgotten & Data Deletion
 GDPR data erasure requests ('Right to be Forgotten') must be executed across all production and backup stores within 30 days of verified customer request.
+
+6. Access and Portability Requests
+Customer data subject requests (access, portability) are fulfilled within 30 days alongside erasure requests, with identity verification before any disclosure.
+
+7. Sub-processor Management
+InfoSec maintains the reviewed sub-processor list with processing purposes and regions. New sub-processors require the same security review as vendors before activation.
+
+8. Training and Confidentiality
+Employees with production data access complete annual privacy training and operate under role-based confidentiality obligations. Access is reviewed quarterly and revoked on role change.
 

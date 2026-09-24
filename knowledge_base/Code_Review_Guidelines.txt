@@ -1,6 +1,6 @@
 Title: Code Review Guidelines
 Role: engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Review Objectives
@@ -14,4 +14,13 @@ Reviewers must distinguish between blocking concerns (e.g. security vulnerabilit
 
 4. Testing Standards
 Every PR modifying business logic must include automated unit tests, and where appropriate, integration tests. Flaky tests must be quarantined and resolved immediately.
+
+6. Security-First Checklist
+Reviewers verify authentication, authorization, input validation, secret handling, and logging hygiene against the Security Policy before approving. Any credential or PII exposure is a blocking concern by default.
+
+7. Documentation in PRs
+PRs that change user-visible behavior or operating procedures must update the relevant runbook, README, or knowledge base page in the same PR, so docs never lag the code.
+
+8. Post-Merge Ownership
+Authors own their merged code through the next canary deployment: they monitor rollout health and are first responder if their change triggers the automated rollback criteria.
 

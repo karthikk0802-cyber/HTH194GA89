@@ -35,7 +35,7 @@ def search_chroma(query, n_results=5, role_filter=None):
     col = get_collection()
     where_clause = {}
     if role_filter and role_filter != "all":
-        where_clause["role"] = {"$in": ["all", role_filter]}
+        where_clause["role"] = {"$in": ["all", role_filter.lower()]}
 
     fetch_n = min(n_results * 3, 30)
     results = col.query(

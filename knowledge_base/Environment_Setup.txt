@@ -1,6 +1,6 @@
 Title: Environment Setup
 Role: engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Local Development Environment
@@ -11,4 +11,13 @@ Local development secrets must never be committed to repositories or shared in S
 
 3. Pre-Commit Hooks
 All repositories configure 'pre-commit' hooks to run linter checks, GPG sign validation, and secret detection scans (TruffleHog) before code can be committed locally.
+
+6. Workstation Provisioning
+IT Ops provisions MacBook Pro or ThinkPad workstations with full-disk encryption before Day 1, consistent with the Security Policy device standards and the Remote Work equipment program.
+
+7. VPN and Zero Trust Enrollment
+Engineers enroll devices in the Zero-Trust VPN with posture compliance checks during onboarding week. Production JIT elevation is granted only from compliant, enrolled devices.
+
+8. Keeping the Environment Current
+Engineers pull updated base images and dependency lockfiles weekly. Stale environments older than 30 days are flagged in CI, since drift is a leading cause of works-on-my-machine defects.
 

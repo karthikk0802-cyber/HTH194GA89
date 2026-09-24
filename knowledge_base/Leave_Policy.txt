@@ -1,6 +1,6 @@
 Title: Leave Policy
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Paid Time Off (PTO) Structure
@@ -14,4 +14,13 @@ Nexora offers 16 weeks of 100% paid parental leave for all new parents (birth, a
 
 4. Bereavement and Civic Duty Leave
 Up to 5 paid days of bereavement leave are granted for immediate family members. Paid time off is also provided for jury duty and public elections.
+
+6. Public Holidays
+Nexora observes standard US public holidays with a published annual calendar. Holiday cover is arranged within teams in advance; on-call rotations continue through holidays with holiday pay rules.
+
+7. Approval Turnaround
+Managers respond to Workday leave requests within 2 business days. Requests outstanding beyond that escalate to the skip-level manager so plans are never blocked by silence.
+
+8. Leave of Absence
+Extended medical or personal leave beyond available PTO and sick days is arranged through People Ops as an approved leave of absence, with role protection per applicable law.
 

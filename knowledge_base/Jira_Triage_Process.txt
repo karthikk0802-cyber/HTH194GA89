@@ -1,6 +1,6 @@
 Title: Jira Triage Process
 Role: product,engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Ticket Creation Standards
@@ -11,4 +11,13 @@ Epics must be scoped to complete within a maximum of 2 agile sprints (4 weeks). 
 
 3. Triage & SLA Priority
 Product managers and engineering leads triage incoming tickets daily. Blockers (P0) are assigned immediately to current sprint; P1 bugs are scheduled within 24 hours.
+
+6. Bug Lifecycle States
+Tickets move Triage → To Do → In Progress → In Review → Done. Tickets awaiting customer or vendor input sit in Blocked with a dated next-check note, never silently stale.
+
+7. Sprint Ceremonies
+Planning, standups, reviews, and retrospectives run inside the 10:00 AM to 3:00 PM EST core collaboration window so distributed teammates can attend synchronously.
+
+8. Definition of Done
+Done means code merged, tests passing above coverage gates, docs updated, and acceptance criteria verified by the reporter or Product. Partial credit does not close tickets.
 

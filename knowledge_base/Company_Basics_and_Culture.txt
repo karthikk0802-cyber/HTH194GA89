@@ -1,6 +1,6 @@
 Title: Company Basics and Culture
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Company Overview and Mission
@@ -22,4 +22,13 @@ Nexora operates on a flexible, asynchronous-first schedule with a designated Cor
 
 5. Communication and Perks
 Company all-hands meetings take place bi-weekly on Thursdays at 2:00 PM EST with open AMA (Ask Me Anything) sessions. Every employee is assigned a dedicated onboarding buddy during their first 90 days.
+
+6. Psychological Safety in Practice
+Blameless retrospectives apply beyond engineering: any team may call a blameless review after a missed commitment. Retaliation for raising risks in good faith is treated as a conduct violation under the Employee Handbook.
+
+7. Documented Decisions
+Transparency means decisions live in writing. Material choices must be recorded as short Notion decision logs (context, options, decider, date) so absent teammates and future hires can reconstruct the why.
+
+8. Values in Performance Reviews
+Peer feedback each cycle rates the four cultural pillars alongside delivery. Sustained ownership and transparency weigh equally with technical output in level and compensation decisions.
 

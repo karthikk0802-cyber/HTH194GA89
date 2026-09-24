@@ -1,6 +1,6 @@
 Title: Deployment SOP
 Role: devops,engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Deployment Schedule & Cadence
@@ -14,4 +14,13 @@ Deployments follow a canary progression: 5% traffic for 15 minutes -> 25% for 30
 
 4. Automated Rollback Criteria
 If error rates exceed 0.5% or p99 latency increases by >25% during canary rollout, the automated CD pipeline immediately triggers a 1-click rollback to the previous stable release artifact.
+
+6. Holiday and Event Freezes
+The Engineering VP may declare deployment freezes around major holidays or company events. Freeze calendars are published at least 2 weeks in advance; only Sev1 hotfixes with written approval ship during a freeze.
+
+7. Database Migration Safety
+Schema migrations must be backward-compatible across at least one release (expand-then-contract). Destructive migrations require a reviewed rollback plan and a dedicated maintenance window.
+
+8. Feature Flags and Kill Switches
+User-facing changes ship behind feature flags with a documented kill switch. Any engineer can request a flag-off through the Incident Commander during a suspected incident without prior approval.
 
