@@ -10,7 +10,6 @@ export default function Sidebar({ activeTab, setActiveTab, isAdmin, collapsed, o
     { id: 'qa', label: 'Knowledge Coach' },
     { id: 'quiz', label: 'Practice Quizzes' },
     { id: 'scenarios', label: 'Applied Scenarios' },
-    { id: 'voice-resources', label: 'Voice & Resources' },
   ];
 
   const adminNav = [
