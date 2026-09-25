@@ -222,6 +222,9 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
               <div>
                 <h3>{sessResult.is_correct ? 'Right.' : 'Wrong.'}</h3>
                 <p>Mastery {sessResult.mastery_score}/100 · {sessResult.status}{sessResult.xp_gained > 0 ? ` · +${sessResult.xp_gained} XP` : ''}</p>
+                {session.questions[sessIdx].evidence_quote && (
+                  <p className="mt">Source passage: “{session.questions[sessIdx].evidence_quote}”</p>
+                )}
               </div>
             </div>
           )}

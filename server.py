@@ -53,6 +53,7 @@ ensure_admin_seed()
 # First-login default password for admin-created users (env-overridable).
 DEFAULT_EMPLOYEE_PASSWORD = os.getenv("DEFAULT_EMPLOYEE_PASSWORD", "employee@123")
 
+
 def _admin_guard(authorization: Optional[str] = Header(default=None)) -> str:
     """Header-injecting wrapper so Depends gets the Authorization header."""
     return require_admin(authorization)
@@ -71,6 +72,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _self_seed_on_boot():
+    """Clone → run → working demo: fill empty stores, never touch live data.
+
+    Each check only fires when its table is completely empty, so normal
+    restarts are untouched. Everything is best-effort; boot never fails here.
+    """
+    try:
+        adb = AuthSessionLocal()
+        try:
+            if adb.query(UserAuthModel).count() == 0:
+                seed_default_auth_users()
+        finally:
+            adb.close()
+        ensure_admin_seed()
+        db = SessionLocal()
+        try:
+            if db.query(DocumentModel).count() == 0:
+                from scripts.ingest_kb import ingest_all
+                ingest_all()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Startup] self-seed skipped: {e}")
 
 # ---------------------------------------------------------------------------
 # Pydantic Request/Response Models
@@ -402,6 +429,44 @@ def submit_diagnostic(req: DiagnosticSubmitRequest):
 # ---------------------------------------------------------------------------
 # 3. Adaptive Learning Path & Competency Graph Endpoints
 # ---------------------------------------------------------------------------
+@app.get("/api/plan/today")
+def get_today_plan(userId: str, role: Optional[str] = "Software Engineer"):
+    """Personalized daily learning plan: focus + due reviews + one stretch item.
+
+    Composed from the same explainable ranking the roadmap uses; every item
+    carries its reason string. Read-only.
+    """
+    db = SessionLocal()
+    try:
+        role_topics = get_role_topics(role)
+        states = db.query(UserTopicState).filter(UserTopicState.user_id == userId).all()
+        ranked = rank_next_topics(states, list(role_topics.keys()))
+
+        def title(tid):
+            return TOPICS.get(tid, {}).get("title", tid)
+
+        items = []
+        if ranked:
+            focus = ranked[0]
+            items.append({"kind": "focus", "topic_id": focus["topic_id"],
+                          "title": title(focus["topic_id"]), "minutes": 25,
+                          "reason": focus.get("reason", "")})
+        reviews = [r for r in ranked[1:] if r.get("status") == "Needs-Review"][:2]
+        for r in reviews:
+            items.append({"kind": "review", "topic_id": r["topic_id"],
+                          "title": title(r["topic_id"]), "minutes": 10,
+                          "reason": r.get("reason", "")})
+        stretch = next((r for r in ranked[1:]
+                        if r.get("status") == "Recommended" and r["topic_id"] not in [i["topic_id"] for i in items]), None)
+        if stretch:
+            items.append({"kind": "stretch", "topic_id": stretch["topic_id"],
+                          "title": title(stretch["topic_id"]), "minutes": 15,
+                          "reason": stretch.get("reason", "")})
+        return {"userId": userId, "role": role,
+                "total_minutes": sum(i["minutes"] for i in items), "items": items}
+    finally:
+        db.close()
+
 @app.get("/api/learning-path/{userId}")
 def get_user_learning_path(userId: str, role: Optional[str] = "Software Engineer"):
     db = SessionLocal()
@@ -468,20 +533,12 @@ def ask_knowledge_coach(req: QARequest):
 def get_quiz_question(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = "Beginner"):
     quiz = generate_quiz_for_topic(topic, role=role, difficulty=difficulty)
     if "error" in quiz:
-        # Fallback to topic-specific standard quiz
-        return {
-            "question": f"What is the standard Nexora operating policy regarding {topic}?",
-            "options": [
-                f"Adhere strictly to official {topic} guidelines",
-                "Operate without approval or review",
-                "Use external unauthorized third-party tooling",
-                "Bypass security and audit controls"
-            ],
-            "correct_answer": f"Adhere strictly to official {topic} guidelines",
-            "learning_objective": f"Mastery of {topic} compliance and workflows",
-            "evidence_quote": f"Employees must follow approved standards for {topic}.",
-            "citations": [f"{topic} Policy"]
-        }
+        # Grounding constraint: never synthesize. Serve a verbatim bank item,
+        # or 503 if the topic has no grounded questions at all.
+        from services.quiz_generator import grounded_fallback_question
+        quiz = grounded_fallback_question(topic)
+        if "error" in quiz:
+            raise HTTPException(status_code=503, detail=quiz["error"])
     
     # Validate question through anti-hallucination gate
     is_valid = validate_quiz_question(quiz, quiz.get("evidence_quote", ""))

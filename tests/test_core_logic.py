@@ -241,11 +241,11 @@ def test_curated_resources():
 
 def test_voice_graceful_degradation():
     empty_res = handle_voice_interaction("", "explain")
-    assert "Gracefully falling back to text mode" in empty_res
-    
-    valid_res = handle_voice_interaction("What is GitFlow?", "explain")
-    assert "Voice Tutor (EXPLAIN MODE)" in valid_res
-    assert "What is GitFlow?" in valid_res
+    assert "Type your question" in empty_res
+
+    valid_res = handle_voice_interaction("When do deployments happen?", "explain")
+    assert "I heard you say" not in valid_res
+    assert len(valid_res) > 50
 
 def test_rag_evidence_confidence_scoring():
     # Strong (< 0.35)

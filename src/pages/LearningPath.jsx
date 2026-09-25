@@ -27,6 +27,9 @@ export default function LearningPath({ selectedRole, setActiveTab, setSelectedQu
     return <span className="spinner spinner-lg" />;
   }
 
+  const reasons = {};
+  for (const r of pathData?.ranked_topics || []) reasons[r.topic_id] = r.reason;
+
   return (
     <div>
       <div className="page-header">
@@ -62,7 +65,7 @@ export default function LearningPath({ selectedRole, setActiveTab, setSelectedQu
                   <div>
                     <div className="dir-main">{comp.title}</div>
                     <div className="dir-sub">
-                      {comp.prerequisites.length > 0 ? `Requires ${comp.prerequisites.join(', ')}` : 'Foundation'} · {comp.difficulty} · {comp.status} · {comp.mastery_score}/100
+                      {comp.prerequisites.length > 0 ? `Requires ${comp.prerequisites.join(', ')}` : 'Foundation'} · {comp.difficulty} · {comp.status} · {comp.mastery_score}/100{reasons[comp.topic_id] ? ` — ${reasons[comp.topic_id]}` : ''}
                     </div>
                   </div>
                   <button

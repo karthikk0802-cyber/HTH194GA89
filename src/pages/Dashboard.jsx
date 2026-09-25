@@ -6,6 +6,7 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [learningPath, setLearningPath] = useState(null);
+  const [todayPlan, setTodayPlan] = useState(null);
   const [buddyWatch, setBuddyWatch] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,11 +16,13 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
     Promise.all([
       api.getDashboardSummary(user.username, selectedRole),
       api.getLearningPath(user.username, selectedRole),
+      api.getTodayPlan(user.username, selectedRole).catch(() => null),
       api.getBuddyAttention(user.username).catch(() => [])
     ])
-      .then(([dashData, pathData, buddyData]) => {
+      .then(([dashData, pathData, planData, buddyData]) => {
         setStats(dashData);
         setLearningPath(pathData);
+        setTodayPlan(planData);
         setBuddyWatch(buddyData || []);
       })
       .catch(console.error)
@@ -61,20 +64,38 @@ export default function Dashboard({ selectedRole, setActiveTab }) {
 
       <div className="section">
         <div className="sec-head">
-          <h3><span className="idx">02</span>Today's focus</h3>
-          <button className="btn btn-sm btn-primary" onClick={() => setActiveTab('quiz')}>
-            Practice →
-          </button>
+          <h3><span className="idx">02</span>Today's plan</h3>
+          {todayPlan && <span className="note">{todayPlan.total_minutes} min</span>}
         </div>
-        {focus ? (
-          <>
-            <p style={{ fontSize: '1.25rem', maxWidth: '34ch' }}>
-              {focus.title || focus.topic_id.replace('_', ' ')}
-            </p>
-            <p className="sub">{focus.reason}</p>
-          </>
+        {todayPlan?.items?.length > 0 ? (
+          <div>
+            {todayPlan.items.map((it, i) => (
+              <div key={i} className="dir-row">
+                <div>
+                  <div>
+                    <div className="dir-main">{it.title}</div>
+                    <div className="dir-sub">{it.kind} · {it.minutes} min — {it.reason}</div>
+                  </div>
+                  <button className="btn btn-sm btn-secondary" onClick={() => setActiveTab('quiz')}>
+                    Start →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <p className="sub">All modules in progress. Open practice to continue.</p>
+          <>
+            {focus ? (
+              <>
+                <p style={{ fontSize: '1.25rem', maxWidth: '34ch' }}>
+                  {focus.title || focus.topic_id.replace('_', ' ')}
+                </p>
+                <p className="sub">{focus.reason}</p>
+              </>
+            ) : (
+              <p className="sub">All modules in progress. Open practice to continue.</p>
+            )}
+          </>
         )}
       </div>
 

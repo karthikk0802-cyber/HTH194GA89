@@ -50,6 +50,8 @@ export const api = {
   // Learning Path & Adaptive
   getLearningPath: (userId, role) =>
     request(`/learning-path/${encodeURIComponent(userId)}?role=${encodeURIComponent(role || 'Software Engineer')}`),
+  getTodayPlan: (userId, role) =>
+    request(`/plan/today?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
 
   // RAG Q&A
   askQA: (query, role) =>

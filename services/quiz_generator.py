@@ -343,7 +343,24 @@ def generate_quiz_session(topic_title, role="all", difficulty="Beginner", count=
         questions.append(q)
         if len(questions) >= count:
             break
+    return _top_up_session(topic_title, role, difficulty, count, rng, questions, seen)
 
+
+def grounded_fallback_question(topic_title):
+    """Last-resort question: always a verbatim bank item, never synthesized.
+
+    Used when generation fails outright. Guarantees the grounding constraint:
+    no question the system emits is ungrounded in the static corpus.
+    """
+    bank = _full_static_bank(_normalize_topic_key(topic_title))
+    if not bank:
+        return {"error": f"No grounded questions available for topic '{topic_title}'"}
+    item = dict(random.choice(bank))
+    item["citations"] = [f"{topic_title} Guidelines"]
+    return item
+
+
+def _top_up_session(topic_title, role, difficulty, count, rng, questions, seen):
     # Top-up via a single batched LLM call when the bank is short and LLM exists.
     if len(questions) < count and get_mistral_client() is not None:
         need = count - len(questions)
