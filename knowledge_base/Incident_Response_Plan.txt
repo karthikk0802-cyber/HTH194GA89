@@ -1,6 +1,6 @@
 Title: Incident Response Plan
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Incident Severity Definitions
@@ -17,4 +17,13 @@ The Incident Commander or Communications Lead must post an initial customer-faci
 
 4. Blameless Post-Mortem
 For all Sev1 and Sev2 incidents, a blameless post-mortem document must be drafted within 48 hours and reviewed in the weekly Engineering Operations Review.
+
+6. Incident Roles
+Every declared incident staffs three roles: Incident Commander (the Primary On-Call), Communications Lead (status page and stakeholder updates), and Scribe (timeline and decision log). One person may cover Comms and Scribe for Sev3 and below.
+
+7. Customer Communication Ownership
+Only the Communications Lead posts to status.nexora.com and customer channels. Engineers post technical updates in #incidents; customer-facing wording is drafted with Support leadership.
+
+8. Follow-Up Action Tracking
+Post-mortem action items become Jira tickets with owners and due dates, reviewed in the weekly Engineering Operations Review until closed. Repeat incidents reopen the original post-mortem.
 

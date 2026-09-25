@@ -1,6 +1,6 @@
 Title: Sales Playbook
 Role: sales
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Nexora Value Proposition
@@ -11,4 +11,13 @@ Sales reps qualify enterprise opportunities using MEDDIC: Metrics, Economic Buye
 
 3. Discount Approval Matrix
 Discounts up to 10% can be approved by Account Executives; 11-20% requires Sales Director sign-off; discounts exceeding 20% require VP of Sales and CFO approval.
+
+6. Sales-to-CS Handoff
+Closed deals transfer with a written handoff: Metrics committed, Economic Buyer contacts, Decision Criteria agreed, open pains, and Champion introduction. No handoff, no commission release.
+
+7. Forecast Hygiene
+Pipeline forecasts update weekly with evidence-linked stages. Stalled enterprise deals without Champion contact for 30 days drop a stage automatically.
+
+8. Discount Discipline
+Discounts trade for something: term length, upfront payment, or reference commitments. Unilateral discounting without a give is a performance issue, not a tactic.
 

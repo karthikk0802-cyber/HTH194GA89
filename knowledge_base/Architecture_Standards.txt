@@ -1,6 +1,6 @@
 Title: Architecture Standards
 Role: engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Architectural Paradigm
@@ -14,4 +14,13 @@ Transactional persistence uses PostgreSQL 16 with read replicas and connection p
 
 4. Infrastructure & Container Orchestration
 All workloads run as Docker containers orchestrated via Kubernetes (EKS/GKE). Infrastructure is provisioned strictly via Terraform (Infrastructure as Code).
+
+6. Service Ownership
+Every microservice has a single owning team recorded in CODEOWNERS and the service catalog. Owners are accountable for runbooks, on-call coverage, dependency upgrades, and deprecation notices.
+
+7. API Versioning and Deprecation
+Breaking API changes require a new versioned endpoint. Deprecated endpoints carry Sunset headers and a minimum 90-day notice before removal, announced in the engineering changelog.
+
+8. Observability Standards
+Services emit structured logs (PII-masked per the Data Privacy policy), RED metrics, and distributed traces into Datadog / CloudWatch. Every service ships with dashboards and alert thresholds reviewed quarterly.
 

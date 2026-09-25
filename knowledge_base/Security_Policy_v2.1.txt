@@ -1,6 +1,6 @@
 Title: Security Policy v2.1
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Workstation & Physical Security
@@ -17,4 +17,13 @@ Any suspected security anomaly, leaked credential, lost laptop, or malware alert
 
 5. Zero Trust Access Control
 Access to internal networks, databases, and admin dashboards requires connection through Nexora's Zero-Trust VPN with device posture compliance checks. Production access requires just-in-time (JIT) privilege elevation.
+
+6. Secrets Handling for Engineers
+Application secrets, API tokens, and credentials must never be hardcoded, committed to repositories, or pasted into Slack. Local development secrets are injected via HashiCorp Vault CLI or 1Password developer plugins, and pre-commit TruffleHog scans enforce this automatically.
+
+7. Vendor and Third-Party Reviews
+New vendors with access to Nexora or customer data undergo a security review by InfoSec before procurement, covering encryption posture, access controls, and incident notification commitments.
+
+8. Training Compliance Tracking
+Completion of compliance training and phishing refresher courses is tracked per employee. Overdue training blocks production access elevation until resolved, consistent with Zero Trust least-privilege principles.
 

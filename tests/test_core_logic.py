@@ -241,11 +241,11 @@ def test_curated_resources():
 
 def test_voice_graceful_degradation():
     empty_res = handle_voice_interaction("", "explain")
-    assert "Gracefully falling back to text mode" in empty_res
-    
-    valid_res = handle_voice_interaction("What is GitFlow?", "explain")
-    assert "Voice Tutor (EXPLAIN MODE)" in valid_res
-    assert "What is GitFlow?" in valid_res
+    assert "Type your question" in empty_res
+
+    valid_res = handle_voice_interaction("When do deployments happen?", "explain")
+    assert "I heard you say" not in valid_res
+    assert len(valid_res) > 50
 
 def test_rag_evidence_confidence_scoring():
     # Strong (< 0.35)
@@ -357,3 +357,20 @@ def test_adaptive_quiz_generator_diversity():
     assert "question" in quiz_sec
     assert quiz_sec["question"] != ""
 
+
+def test_quiz_session_twenty_unique_no_repeats():
+    """20-question sessions: full count, unique questions, valid options (offline bank)."""
+    from services.quiz_generator import generate_quiz_session
+
+    topics = ["Company Basics", "Security & Compliance", "Git Workflow",
+              "Tools & Workflows", "Architecture Standards", "Deployment & CI/CD",
+              "Product Triage", "Sales Playbook"]
+    for t in topics:
+        s = generate_quiz_session(t, count=20, seed=7)
+        assert s["complete"] is True, f"{t}: session incomplete ({s['count']}/20)"
+        assert s["count"] == 20, f"{t}: got {s['count']} questions"
+        qs = [q["question"] for q in s["questions"]]
+        assert len(set(qs)) == 20, f"{t}: repeats detected"
+        for q in s["questions"]:
+            assert len(q["options"]) == 4
+            assert q["correct_answer"] in q["options"]

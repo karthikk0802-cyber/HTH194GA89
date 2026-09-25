@@ -30,11 +30,27 @@ function MainApp() {
   const [selectedRole, setSelectedRole] = useState(user?.role || 'Software Engineer');
   const [selectedQuizTopic, setSelectedQuizTopic] = useState('');
   const [adminView, setAdminView] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('onboardiq_sidebar') === 'collapsed'
+  );
+
+  const toggleSidebar = () => {
+    setCollapsed((c) => {
+      localStorage.setItem('onboardiq_sidebar', !c ? 'collapsed' : 'open');
+      return !c;
+    });
+  };
 
   // Role is admin-assigned: view always follows the logged-in user's record.
   useEffect(() => {
     if (user?.role) setSelectedRole(user.role);
   }, [user?.role]);
+
+  // Admins get the admin portal only — no learner content.
+  const ADMIN_TABS = ['admin-users', 'admin'];
+  useEffect(() => {
+    if (isAdmin && !ADMIN_TABS.includes(activeTab)) setActiveTab('admin-users');
+  }, [isAdmin]);
 
   if (!isAuthenticated) {
     if (adminView) return <AdminLogin onBack={() => setAdminView(false)} />;
@@ -42,8 +58,8 @@ function MainApp() {
   }
 
   const renderContent = () => {
-    if (activeTab === 'admin-users') {
-      if (!isAdmin) return <Dashboard selectedRole={selectedRole} setActiveTab={setActiveTab} />;
+    if (isAdmin) {
+      if (activeTab === 'admin') return <AdminCenter />;
       return <UserManagement />;
     }
     switch (activeTab) {
@@ -61,7 +77,6 @@ function MainApp() {
         return (
           <PreAssessment
             selectedRole={selectedRole}
-            setSelectedRole={setSelectedRole}
             setActiveTab={setActiveTab}
           />
         );
@@ -104,9 +119,9 @@ function MainApp() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${collapsed ? ' rail' : ''}`}>
       {user?.must_change_password && <ChangePassword forced />}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={isAdmin} collapsed={collapsed} onToggle={toggleSidebar} />
       <div className="main-content-wrapper">
         <Navbar
           activeTab={activeTab}

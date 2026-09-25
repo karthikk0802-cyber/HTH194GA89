@@ -18,6 +18,30 @@ def pick_difficulty(mastery_score: int) -> str:
     return "Beginner"
 
 
+DECAY_POINTS_PER_DAY = 2
+DECAY_GRACE_DAYS = 7
+
+
+def effective_mastery(mastery_score: int, last_attempt_at, now=None) -> int:
+    """Forgetting curve for v2 targeting: stored scores never change, but
+    targeting discounts stale mastery (2 pts/day after a 7-day grace).
+    v1 display paths are untouched."""
+    from datetime import datetime
+    try:
+        m = int(mastery_score)
+    except (TypeError, ValueError):
+        return 0
+    if last_attempt_at is None:
+        return m
+    now = now or datetime.utcnow()
+    try:
+        days = (now - last_attempt_at).days
+    except TypeError:
+        return m
+    overdue = max(0, days - DECAY_GRACE_DAYS)
+    return max(0, m - overdue * DECAY_POINTS_PER_DAY)
+
+
 def pick_next_topic(weak_topics, states=None, required_topics=None, seed=None) -> dict:
     """70% weakest / 30% review-or-next. Returns {topic_id, reason} only."""
     rng = random.Random(seed)

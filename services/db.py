@@ -14,10 +14,12 @@ class DocumentModel(Base):
     filename = Column(String, index=True)
     title = Column(String)
     role = Column(String)
-    status = Column(String, default="active") # active, inactive
+    status = Column(String, default="active") # active, inactive, draft
     version = Column(Integer, default=1)
     chunk_count = Column(Integer, default=0)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+    owner = Column(String, default="") # owning team for SOP review accountability
+    review_after = Column(DateTime, nullable=True) # next scheduled SOP review date
 
 class QuizFeedbackModel(Base):
     __tablename__ = "quiz_feedback"
@@ -50,7 +52,42 @@ class UserProfileModel(Base):
     badges = Column(String, default="[]") # JSON list
 
 
+class SignoffModel(Base):
+    """Human verification: manager or assigned buddy signs off a topic (or overall)."""
+    __tablename__ = "manager_signoffs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, nullable=False)
+    topic_id = Column(String, nullable=True) # null = overall readiness sign-off
+    signer = Column(String, nullable=False)
+    note = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_schema():
+    """Additive schema evolution for pre-existing sqlite DBs.
+
+    create_all() never adds columns to existing tables, so every nullable
+    column introduced after day one must be ensured here. Additive only —
+    never renames, drops, or alters existing columns.
+    """
+    import sqlite3
+
+    conn = sqlite3.connect("./onboardiq.db")
+    try:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
+        if "owner" not in cols:
+            conn.execute("ALTER TABLE documents ADD COLUMN owner VARCHAR DEFAULT ''")
+        if "review_after" not in cols:
+            conn.execute("ALTER TABLE documents ADD COLUMN review_after DATETIME")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+ensure_schema()
 
 def get_db():
     db = SessionLocal()

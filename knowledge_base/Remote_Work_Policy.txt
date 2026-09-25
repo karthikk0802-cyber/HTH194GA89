@@ -1,6 +1,6 @@
 Title: Remote Work Policy
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Remote-First Philosophy
@@ -14,4 +14,13 @@ Nexora provides a monthly recurring $50 USD internet stipend to subsidize high-s
 
 4. Coworking Space Subsidies
 Employees who prefer working outside the home can expense up to $250 USD per month for hot-desk memberships at certified coworking spaces (e.g. WeWork, Industrious).
+
+6. Remote Security Baseline
+Remote work requires the same controls as office work: full-disk encryption, locked screens, Zero-Trust VPN for internal systems, and no sensitive work over untrusted networks without VPN.
+
+7. Timezone Overlap
+Distributed teammates outside EST arrange at least 3 hours of overlap with the 10:00 AM to 3:00 PM EST core window on team-agreed days, keeping async-first norms otherwise.
+
+8. Onsite Gatherings
+Teams may expense quarterly onsites for planning and cohesion. Travel follows the Expense Policy flight, hotel, and per diem rules.
 

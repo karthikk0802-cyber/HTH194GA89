@@ -1,6 +1,6 @@
 Title: Employee Handbook v1.0
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. Welcome to Nexora
@@ -17,4 +17,13 @@ Every full-time employee receives an annual $1,500 USD Professional Development 
 
 5. Equal Opportunity and Anti-Harassment
 Nexora is committed to maintaining a safe, inclusive, and harassment-free workplace. Any discriminatory behavior, harassment, or retaliation will result in immediate disciplinary action up to termination.
+
+6. Scope: Full-Time and Contractual Staff
+All conduct, attendance, and security expectations in this handbook apply to full-time and contractual employees alike. Benefit figures such as stipends and leave refer to full-time entitlements unless stated otherwise.
+
+7. Reporting Concerns
+Concerns about discrimination, harassment, or retaliation may be raised with a direct manager, People Ops, or the anonymous ethics channel. Reports are acknowledged within 2 business days and investigated confidentially.
+
+8. Handbook Currency
+This handbook is reviewed annually by People Ops with Engineering Leadership. The published version in the knowledge base is authoritative; forwarded copies and screenshots are not reliable.
 

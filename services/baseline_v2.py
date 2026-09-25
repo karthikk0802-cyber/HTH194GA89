@@ -93,6 +93,11 @@ def score_baseline(answers: dict, role: str = "Software Engineer", profile=None)
         elif strength == "strong":
             strong_topics.append(t)
 
+    # Compliance policy: evaluated bypasses, not raw scores, drive progression.
+    from services.taxonomy import apply_bypass_policy, NON_BYPASSABLE_TOPICS
+    policy_bypassed = apply_bypass_policy(strong_topics)
+    blocked = [t for t in strong_topics if t in NON_BYPASSABLE_TOPICS]
+
     calibration = {"applied": False, "adjustments": {}}
     if isinstance(profile, dict):
         adj = profile.get("topic_adjustments", {})
@@ -103,6 +108,8 @@ def score_baseline(answers: dict, role: str = "Software Engineer", profile=None)
         "topic_scores": topic_scores,
         "weak_topics": weak_topics,
         "strong_topics": strong_topics,
+        "bypass_eligible": policy_bypassed,
+        "must_complete": blocked,
         "role_card": role,
         "calibration": calibration,
     }

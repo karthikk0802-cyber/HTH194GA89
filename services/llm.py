@@ -19,6 +19,13 @@ def get_mistral_client():
     except Exception:
         pass
 
+    # Try v2.x SDK layout
+    try:
+        from mistralai.client import Mistral
+        return Mistral(api_key=api_key.strip())
+    except Exception:
+        pass
+
     # Try legacy client
     try:
         from mistralai.client import MistralClient
@@ -341,6 +348,8 @@ def smart_fallback_completion(prompt: str) -> str:
 
     # 5. General AI Q&A Fallback
     q_match = re.search(r"User Question:\s*(.+?)(?=\n\nAnswer:|$)", prompt, re.DOTALL | re.IGNORECASE)
+    if not q_match:
+        q_match = re.search(r"Employee Question:\s*(.+?)(?=\n\nAnswer:|$)", prompt, re.DOTALL | re.IGNORECASE)
     user_q = q_match.group(1).strip() if q_match else prompt.strip()
     
     # Check context in prompt
@@ -353,7 +362,7 @@ def smart_fallback_completion(prompt: str) -> str:
         return "Nexora's designated **Core Collaboration Window is 10:00 AM to 3:00 PM EST (Monday through Friday)** for synchronous meetings and sprint ceremonies. Outside these core hours, team members enjoy full flexible autonomy."
     elif "password" in user_q.lower() or "mfa" in user_q.lower() or "security" in user_q.lower():
         return "Nexora enforces **mandatory password rotation every 90 days** with a minimum of 16 characters (uppercase, lowercase, numbers, symbols) and mandatory Multi-Factor Authentication (MFA / 2FA) via hardware keys or TOTP authenticator apps."
-    elif "git" in user_q.lower() or "branch" in user_q.lower() or "pr" in user_q.lower():
+    elif "git" in user_q.lower() or "branch" in user_q.lower() or re.search(r"\bpr\b", user_q.lower()):
         return "Nexora engineering uses **Trunk-Based Development**. Feature branches must be short-lived (24-48 hours), commits must be cryptographically signed with GPG/SSH keys, and all Pull Requests require at least **1 peer approval** and >80% test coverage."
     elif "deploy" in user_q.lower() or "release" in user_q.lower():
         return "Standard production deployments happen on **Tuesdays and Thursdays between 10:00 AM and 2:00 PM EST**. Deployments on Fridays and weekends are strictly prohibited without VP approval. Canary rollout starts at 5% traffic."

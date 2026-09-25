@@ -165,3 +165,52 @@ def get_role_card(role: str):
             "tools": {"depth": "Beginner", "baseline_count": 2},
         },
     }
+
+
+# Compliance topics can never be bypassed: everyone completes the full
+# baseline for them regardless of score. Lucky guesses must not certify
+# safety training.
+NON_BYPASSABLE_TOPICS = frozenset({"security"})
+
+
+def apply_bypass_policy(bypassed_topics) -> list:
+    """Filter claimed bypasses through the compliance policy. Shape-preserving."""
+    return [t for t in (bypassed_topics or []) if t not in NON_BYPASSABLE_TOPICS]
+
+
+# Doc title -> topics whose mastery expires when the doc is re-approved.
+# Scores built on old SOP versions must not survive a rewrite.
+DOC_TOPIC_OVERRIDES = {
+    "employee_handbook": "company_basics",
+    "leave_policy": "company_basics",
+    "expense_policy": "company_basics",
+    "remote_work": "company_basics",
+    "code_review": "git_workflow",
+    "jira_triage": "git_workflow",
+    "data_privacy": "security",
+    "incident_response": "deployment",
+    "on_call": "deployment",
+    "communication_guidelines": "tools",
+    "environment_setup": "tools",
+}
+
+
+def doc_topics_for_title(title: str) -> list:
+    """Map a doc title to affected topic keys (stable, no LLM)."""
+    t = (title or "").lower().replace(" & ", "_").replace(" ", "_").replace("-", "_")
+    for prefix, topic in DOC_TOPIC_OVERRIDES.items():
+        if prefix in t:
+            return [topic]
+    for key in ("company_basics", "security", "tools", "git_workflow",
+                "architecture", "product_triage", "deployment", "sales_playbook"):
+        if key in t or t.replace("_", "") in key.replace("_", ""):
+            return [key]
+    if "deploy" in t:
+        return ["deployment"]
+    if "architecture" in t:
+        return ["architecture"]
+    if "sales" in t:
+        return ["sales_playbook"]
+    if "product" in t:
+        return ["product_triage"]
+    return []

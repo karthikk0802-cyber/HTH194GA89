@@ -1,6 +1,6 @@
 Title: On-Call Compensation
 Role: engineering
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. On-Call Rotation Structure
@@ -11,4 +11,13 @@ Engineers receive an additional $500 USD stipend per completed on-call week, pai
 
 3. Time in Lieu & Recovery
 If an on-call engineer is paged during the night (10:00 PM to 7:00 AM) to resolve a Sev1/Sev2 incident, they are entitled to take the morning off (up to 4 hours) as paid recovery time.
+
+6. Shadow Rotations
+Engineers in Day 31-60 of onboarding join on-call shadow rotations: they observe pages, war rooms, and handoffs without primary responsibility, preparing for full rotation membership.
+
+7. Handoff Procedure
+Rotations hand off with a written sync covering active incidents, known flaky alerts, and in-flight deploys. Silent handoffs are not permitted; both engineers acknowledge in PagerDuty.
+
+8. Secondary Escalation
+If the Primary does not acknowledge within 10 minutes, PagerDuty escalates to the Secondary engineer, then to the engineering manager. Gaps in coverage are a Sev3 operational issue.
 

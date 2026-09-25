@@ -51,7 +51,7 @@ def ingest_all():
         new_doc = DocumentModel(
             filename=filename,
             title=meta["title"],
-            role=meta["role"],
+            role=(meta["role"] or "all").lower(),
             chunk_count=len(chunks)
         )
         db.add(new_doc)
@@ -60,7 +60,7 @@ def ingest_all():
         
         # Save to Chroma
         ids = [f"doc_{new_doc.id}_chunk_{i}" for i in range(len(chunks))]
-        metadatas = [{"doc_id": str(new_doc.id), "title": meta["title"], "role": meta["role"], "filename": filename} for _ in chunks]
+        metadatas = [{"doc_id": str(new_doc.id), "title": meta["title"], "role": (meta["role"] or "all").lower(), "filename": filename} for _ in chunks]
         add_chunks_to_chroma(chunks, metadatas, ids)
         print(f"Ingested {filename} (Title: '{meta['title']}', Role: '{meta['role']}') - {len(chunks)} chunks.")
 

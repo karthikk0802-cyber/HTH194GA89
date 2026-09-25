@@ -3,31 +3,40 @@ import { api } from '../services/api';
 
 export default function VoiceAndResources() {
   const [activeTab, setActiveTab] = useState('voice');
-  
-  // Voice state
+
   const [mode, setMode] = useState('explain');
   const [transcript, setTranscript] = useState('');
   const [tutorReply, setTutorReply] = useState('');
   const [loadingVoice, setLoadingVoice] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [ttsOn, setTtsOn] = useState(true);
+  const [voiceSupported, setVoiceSupported] = useState({ stt: false, tts: false });
 
-  // Resources state
+  useEffect(() => {
+    setVoiceSupported({
+      stt: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+      tts: 'speechSynthesis' in window,
+    });
+    return () => { try { window.speechSynthesis?.cancel(); } catch (e) { /* noop */ } };
+  }, []);
+
   const [selectedTopic, setSelectedTopic] = useState('security');
   const [resources, setResources] = useState([]);
   const [loadingResources, setLoadingResources] = useState(false);
 
   const tutorModes = [
-    { id: 'explain', label: 'Explain Concept', icon: '📖' },
-    { id: 'quiz-me', label: 'Quiz Me', icon: '❓' },
-    { id: 'explain-mistake', label: 'Review Mistake', icon: '🔍' },
-    { id: 'give-example', label: 'Give Real Example', icon: '💡' },
-    { id: 'what-next', label: 'What Should I Learn Next?', icon: '🧭' }
+    { id: 'explain', label: 'Explain' },
+    { id: 'quiz-me', label: 'Quiz me' },
+    { id: 'explain-mistake', label: 'Review mistake' },
+    { id: 'give-example', label: 'Give example' },
+    { id: 'what-next', label: 'What next' }
   ];
 
   const topicsList = [
     { id: 'company_basics', title: 'Company Basics' },
-    { id: 'security', title: 'Security & Compliance' },
+    { id: 'security', title: 'Security' },
     { id: 'git_workflow', title: 'Git Workflow' },
-    { id: 'tools', title: 'Tools & Workflows' }
+    { id: 'tools', title: 'Tools' }
   ];
 
   useEffect(() => {
@@ -42,10 +51,12 @@ export default function VoiceAndResources() {
     e.preventDefault();
     if (!transcript.trim()) return;
 
+    try { window.speechSynthesis?.cancel(); } catch (err) { /* noop */ }
     setLoadingVoice(true);
     try {
       const res = await api.voiceInteract(transcript, mode);
       setTutorReply(res.reply);
+      speak(res.reply);
     } catch (err) {
       alert('Voice tutor error: ' + err.message);
     } finally {
@@ -53,161 +64,160 @@ export default function VoiceAndResources() {
     }
   };
 
+  const speak = (text) => {
+    if (!ttsOn || !('speechSynthesis' in window)) return;
+    try {
+      const clean = (text || '').replace(/[*_`#]/g, '').slice(0, 600);
+      if (!clean.trim()) return;
+      const utter = new SpeechSynthesisUtterance(clean);
+      utter.rate = 1.0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch (err) { /* TTS unavailable: reply stays readable */ }
+  };
+
+  const toggleMic = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      window.__voiceRec?.stop();
+      return;
+    }
+    try {
+      const rec = new SR();
+      window.__voiceRec = rec;
+      rec.lang = 'en-US';
+      rec.interimResults = false;
+      rec.onresult = (ev) => {
+        const text = Array.from(ev.results).map(r => r[0]?.transcript || '').join(' ').trim();
+        if (text) setTranscript(text);
+      };
+      rec.onend = () => setListening(false);
+      rec.onerror = () => setListening(false);
+      rec.start();
+      setListening(true);
+    } catch (err) { /* mic unavailable */ }
+  };
+
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1>Voice Tutor & Curated Resources</h1>
-          <p>Multi-modal interactive voice coaching with graceful text fallback and verified intranet materials.</p>
-        </div>
+        <h1><span className="kicker">01</span>Voice & Resources</h1>
+        <p>Spoken-style coaching with text fallback, plus the verified intranet catalog.</p>
       </div>
 
-      {/* Tab Selector */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        <button
-          className={`btn ${activeTab === 'voice' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ padding: '10px 20px', fontSize: '14px' }}
-          onClick={() => setActiveTab('voice')}
-        >
-          🎙️ Interactive Voice Tutor
+      <div className="row" style={{ marginBottom: 32 }}>
+        <button className={`btn btn-sm ${activeTab === 'voice' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('voice')}>
+          Voice tutor
         </button>
-        <button
-          className={`btn ${activeTab === 'resources' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ padding: '10px 20px', fontSize: '14px' }}
-          onClick={() => setActiveTab('resources')}
-        >
-          📚 Verified Intranet Resources
+        <button className={`btn btn-sm ${activeTab === 'resources' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('resources')}>
+          Intranet resources
         </button>
       </div>
 
-      {/* TAB 1: Voice Tutor */}
       {activeTab === 'voice' && (
-        <div className="glass-card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h3 style={{ fontSize: '18px' }}>Voice Coaching Session</h3>
-            <span className="badge badge-indigo">Graceful Fallback Mode Active</span>
+        <div className="section">
+          <div className="sec-head">
+            <h3><span className="idx">02</span>Ask out loud, in text</h3>
+            <span className="note">text fallback active</span>
           </div>
-
-          {/* Mode Selector */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+          <div className="row" style={{ marginBottom: 16 }}>
             {tutorModes.map(m => (
               <button
                 key={m.id}
-                className={`btn ${mode === m.id ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '13px' }}
+                className={`btn btn-sm ${mode === m.id ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setMode(m.id)}
               >
-                {m.icon} {m.label}
+                {m.label}
               </button>
             ))}
           </div>
 
-          {/* Voice Input Simulator */}
           <form onSubmit={handleVoiceSubmit}>
-            <div className="input-group">
-              <label className="input-label">Simulate Spoken Input (Speech-to-Text Fallback)</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. 'Can you explain why we don't deploy on Fridays?' or 'Quiz me on API security!'"
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                />
+            <div className="row">
+              {voiceSupported.stt && (
                 <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ flexShrink: 0, padding: '0 24px' }}
-                  disabled={loadingVoice || !transcript.trim()}
+                  type="button"
+                  className={`btn ${listening ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={toggleMic}
+                  title={listening ? 'Stop listening' : 'Speak instead of typing'}
                 >
-                  {loadingVoice ? <div className="spinner"></div> : '🎙️ Speak to Tutor'}
+                  {listening ? 'Listening… (tap to stop)' : 'Speak'}
                 </button>
-              </div>
+              )}
+              <input
+                type="text"
+                className="form-input"
+                style={{ flex: 1, minWidth: 240 }}
+                placeholder={voiceSupported.stt ? "Tap Speak and talk, or type here…" : "Type your question here…"}
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary" disabled={loadingVoice || !transcript.trim()}>
+                {loadingVoice ? <span className="spinner" /> : 'Ask tutor'}
+              </button>
+              {voiceSupported.tts && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => { setTtsOn(v => !v); try { window.speechSynthesis?.cancel(); } catch (e) { /* noop */ } }}
+                  title="Spoken replies on/off"
+                >
+                  Voice {ttsOn ? 'on' : 'off'}
+                </button>
+              )}
             </div>
+            {!voiceSupported.stt && (
+              <p className="sub mt">This browser has no speech recognition — typing works fully.</p>
+            )}
           </form>
 
-          {/* Tutor Reply Card */}
           {tutorReply && (
-            <div style={{
-              marginTop: '24px',
-              padding: '24px',
-              background: 'rgba(99, 102, 241, 0.1)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid rgba(99, 102, 241, 0.3)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <span style={{ fontSize: '24px' }}>🤖</span>
-                <strong style={{ color: '#ffffff', fontSize: '16px' }}>AI Voice Tutor Reply:</strong>
+            <div className="callout callout-info mt">
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h4>Tutor reply</h4>
+                {voiceSupported.tts && (
+                  <button className="btn btn-sm btn-secondary" onClick={() => speak(tutorReply)}>
+                    Replay aloud
+                  </button>
+                )}
               </div>
-              <p style={{ fontSize: '15px', color: '#f3f4f6', lineHeight: 1.6 }}>
-                {tutorReply}
-              </p>
+              <p className="mt">{tutorReply}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 2: Curated Resources */}
       {activeTab === 'resources' && (
-        <div className="glass-card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px' }}>Verified Static Intranet Catalog</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-                Zero hallucinations: all links originate from an admin-verified internal repository.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="section">
+          <div className="sec-head">
+            <h3><span className="idx">02</span>Verified catalog</h3>
+            <span className="row">
               {topicsList.map(t => (
                 <button
                   key={t.id}
-                  className={`btn ${selectedTopic === t.id ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  className={`btn btn-sm ${selectedTopic === t.id ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setSelectedTopic(t.id)}
                 >
                   {t.title}
                 </button>
               ))}
-            </div>
+            </span>
           </div>
 
           {loadingResources ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}><div className="spinner"></div></div>
+            <span className="spinner spinner-lg" />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+            <div>
               {resources.map((r, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '20px',
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                  }}
-                >
+                <div key={i} className="dir-row">
                   <div>
-                    <span className={`badge ${
-                      r.type === 'Video' ? 'badge-rose' :
-                      r.type === 'Document' ? 'badge-indigo' :
-                      r.type === 'SOP' ? 'badge-cyan' : 'badge-emerald'
-                    }`} style={{ marginBottom: '10px' }}>
-                      {r.type}
-                    </span>
-                    <h4 style={{ fontSize: '16px', color: '#ffffff', marginBottom: '8px' }}>{r.title}</h4>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.url}</span>
+                    <div>
+                      <div className="dir-main">{r.title}</div>
+                      <div className="dir-sub">{r.type} · {r.url}</div>
+                    </div>
+                    <a href={r.url} target="_blank" rel="noreferrer" className="btn btn-sm btn-secondary">Open →</a>
                   </div>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ marginTop: '16px', padding: '8px', fontSize: '12px', textAlign: 'center' }}
-                  >
-                    Open Verified Document ↗
-                  </a>
                 </div>
               ))}
             </div>

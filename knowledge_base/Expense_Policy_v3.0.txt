@@ -1,6 +1,6 @@
 Title: Expense Policy v3.0
 Role: all
-Date: 2026-09-24
+Date: 2026-09-25
 ----------------------------------------
 
 1. General Expense Principles
@@ -14,4 +14,13 @@ The standard meal per diem allowance during business travel is $75 USD per day (
 
 4. Flight & Accommodation Rules
 Economy class is standard for flights under 6 hours. Business class is permitted for international flights over 8 continuous flight hours with VP pre-approval. Hotel nightly rates should not exceed $250/night in standard cities or $350/night in tier-1 metro areas.
+
+6. Client Entertainment
+Alcohol is reimbursable only as part of an authorized client entertainment dinner with documented attendees and business purpose. Team socials follow pre-approved budgets instead of per-person claims.
+
+7. Foreign Currency
+Expenses in foreign currency are reimbursed at the Expensify card rate on the transaction date. Retain original-language itemized receipts; translations are handled by Finance on request.
+
+8. Audit Sampling
+Finance audits a random sample of expense reports monthly. Repeated undocumented claims trigger mandatory retraining and temporary pre-approval requirements for the employee.
 

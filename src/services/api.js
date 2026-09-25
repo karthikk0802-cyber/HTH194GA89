@@ -50,6 +50,8 @@ export const api = {
   // Learning Path & Adaptive
   getLearningPath: (userId, role) =>
     request(`/learning-path/${encodeURIComponent(userId)}?role=${encodeURIComponent(role || 'Software Engineer')}`),
+  getTodayPlan: (userId, role) =>
+    request(`/plan/today?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
 
   // RAG Q&A
   askQA: (query, role) =>
@@ -58,6 +60,9 @@ export const api = {
   // Quizzes & Remediation
   generateQuiz: (topic, role = 'all', difficulty = 'Beginner') =>
     request(`/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&difficulty=${encodeURIComponent(difficulty)}`),
+
+  startQuizSession: (topic, role = 'all', userId = '', count = 20, difficulty = null) =>
+    request(`/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}${difficulty ? `&difficulty=${encodeURIComponent(difficulty)}` : ''}&count=${encodeURIComponent(count)}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
   
   submitQuiz: (userId, topicId, selectedAnswer, correctAnswer) =>
     request('/quiz/submit', {
@@ -113,9 +118,11 @@ export const api = {
   toggleDocument: (docId) => request(`/admin/docs/toggle/${docId}`, { method: 'POST' }),
   deleteDocument: (docId) => request(`/admin/docs/${docId}`, { method: 'DELETE' }),
   getFeedbackList: () => request('/admin/feedback'),
-  uploadDocument: async (file) => {
+  approveDocument: (docId) => request(`/admin/docs/approve/${docId}`, { method: 'POST' }),
+  uploadDocument: async (file, owner = '') => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('owner', owner);
     const res = await fetch(`${API_BASE}/admin/docs/upload`, {
       method: 'POST',
       body: formData
@@ -148,6 +155,20 @@ export const api = {
     request(`/v2/quiz/next?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
   generatePersonalizedQuiz: (topic, role = 'all', userId = '') =>
     request(`/v2/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}`),
+  startPersonalizedSession: (topic, role = 'all', userId = '', count = 20) =>
+    request(`/v2/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&userId=${encodeURIComponent(userId)}&count=${encodeURIComponent(count)}`),
+
+  // Held-out graded eval (measures, never pays XP) + buddy + transfer
+  getGradedEval: (userId, role) =>
+    request(`/v2/eval?userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role || 'Software Engineer')}`),
+  submitGradedEval: (userId, role, answers) =>
+    request('/v2/eval/submit', { method: 'POST', body: JSON.stringify({ userId, role, answers }) }),
+  getBuddyAttention: (username) =>
+    request(`/buddy/${encodeURIComponent(username)}/attention`),
+  managerSignoff: (userId, signer, topicId = null, note = '') =>
+    request('/manager/signoff', { method: 'POST', body: JSON.stringify({ userId, signer, topicId, note }) }),
+  adminTransferRole: (token, username, newRole, newDepartment) =>
+    request(`/admin/users/${encodeURIComponent(username)}/transfer`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ new_role: newRole, new_department: newDepartment }) }),
 
   // Resume profiles (admin-only)
   uploadResume: async (token, userId, role, file) => {

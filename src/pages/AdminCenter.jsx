@@ -5,9 +5,9 @@ export default function AdminCenter() {
   const [docs, setDocs] = useState([]);
   const [feedbackList, setFeedbackList] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Upload state
+
   const [uploadFile, setUploadFile] = useState(null);
+  const [uploadOwner, setUploadOwner] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState('');
 
@@ -39,12 +39,21 @@ export default function AdminCenter() {
   };
 
   const handleDeleteDoc = async (docId) => {
-    if (!window.confirm('Are you sure you want to delete this document from SQLite and ChromaDB?')) return;
+    if (!window.confirm('Delete this document from SQLite and ChromaDB?')) return;
     try {
       await api.deleteDocument(docId);
       fetchData();
     } catch (err) {
       alert('Error deleting document: ' + err.message);
+    }
+  };
+
+  const handleApproveDoc = async (docId) => {
+    try {
+      await api.approveDocument(docId);
+      fetchData();
+    } catch (err) {
+      alert('Error approving document: ' + err.message);
     }
   };
 
@@ -55,9 +64,10 @@ export default function AdminCenter() {
     setUploading(true);
     setUploadSuccess('');
     try {
-      const res = await api.uploadDocument(uploadFile);
-      setUploadSuccess(`Successfully ingested '${res.document.title}' (${res.document.chunk_count} chunks embedded into ChromaDB).`);
+      const res = await api.uploadDocument(uploadFile, uploadOwner);
+      setUploadSuccess(`“${res.document.title}” staged as draft (${res.document.chunk_count} chunks). Approve to activate in RAG.`);
       setUploadFile(null);
+      setUploadOwner('');
       fetchData();
     } catch (err) {
       alert('Upload failed: ' + err.message);
@@ -67,11 +77,7 @@ export default function AdminCenter() {
   };
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <div className="spinner" style={{ width: '36px', height: '36px' }}></div>
-      </div>
-    );
+    return <span className="spinner spinner-lg" />;
   }
 
   const activeDocsCount = docs.filter(d => d.status === 'active').length;
@@ -79,119 +85,93 @@ export default function AdminCenter() {
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1>Knowledge Administration & Governance</h1>
-          <p>Manage corporate policy documents, vector embedding lifecycle, and learner audit feedback.</p>
-        </div>
+        <h1><span className="kicker">01</span>Knowledge admin</h1>
+        <p>Policy documents, retrieval lifecycle, and learner feedback.</p>
       </div>
 
-      {/* KPI Overview */}
-      <div className="grid-3" style={{ marginBottom: '28px' }}>
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>INDEXED DOCUMENTS</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#ffffff', marginTop: '4px' }}>
-            {docs.length}
+      <div className="section">
+        <div className="row" style={{ gap: 48 }}>
+          <div>
+            <div className="kpi-label">Documents</div>
+            <div className="kpi">{docs.length}</div>
           </div>
-        </div>
-
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>ACTIVE IN RAG</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#34d399', marginTop: '4px' }}>
-            {activeDocsCount}
+          <div>
+            <div className="kpi-label">Active in RAG</div>
+            <div className="kpi">{activeDocsCount}</div>
           </div>
-        </div>
-
-        <div className="glass-card">
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>FLAGGED QUIZ ITEMS</span>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
-            {feedbackList.length}
+          <div>
+            <div className="kpi-label">Flagged items</div>
+            <div className="kpi">{feedbackList.length}</div>
           </div>
         </div>
       </div>
 
-      {/* Document Upload Card */}
-      <div className="glass-card" style={{ marginBottom: '28px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Ingest New Knowledge Base Document</h3>
-        <form onSubmit={handleUploadSubmit} style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">02</span>Ingest document</h3>
+          <span className="note">lands as draft</span>
+        </div>
+        <form onSubmit={handleUploadSubmit} className="row">
+          <input type="file" accept=".txt,.pdf,.docx" onChange={(e) => setUploadFile(e.target.files[0])} />
           <input
-            type="file"
-            accept=".txt,.pdf,.docx"
-            onChange={(e) => setUploadFile(e.target.files[0])}
-            style={{
-              padding: '10px',
-              background: 'rgba(15, 23, 42, 0.7)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-primary)',
-              flex: 1,
-              minWidth: '260px'
-            }}
+            type="text"
+            className="form-input"
+            style={{ maxWidth: 220 }}
+            placeholder="Owning team"
+            value={uploadOwner}
+            onChange={(e) => setUploadOwner(e.target.value)}
           />
-          <button
-            type="submit"
-            className="btn btn-primary"
-            style={{ padding: '12px 28px' }}
-            disabled={uploading || !uploadFile}
-          >
-            {uploading ? <div className="spinner"></div> : '📤 Extract, Chunk & Index into ChromaDB'}
+          <button type="submit" className="btn btn-primary" disabled={uploading || !uploadFile}>
+            {uploading ? <span className="spinner" /> : 'Chunk & stage'}
           </button>
         </form>
-
-        {uploadSuccess && (
-          <div style={{ marginTop: '14px', color: '#6ee7b7', fontSize: '14px', background: 'rgba(16, 185, 129, 0.1)', padding: '10px 14px', borderRadius: '8px' }}>
-            ✓ {uploadSuccess}
-          </div>
-        )}
+        {uploadSuccess && <div className="notice notice-ok mt">{uploadSuccess}</div>}
       </div>
 
-      {/* Documents Table */}
-      <div className="glass-card" style={{ marginBottom: '28px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Indexed Knowledge Base Documents</h3>
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">03</span>Documents</h3>
+        </div>
         <div className="custom-table-container">
           <table className="custom-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Document Title</th>
-                <th>Role Scope</th>
-                <th>Embedded Chunks</th>
-                <th>RAG Status</th>
-                <th>Actions</th>
+                <th>Title</th>
+                <th>Scope</th>
+                <th>Chunks</th>
+                <th>Status</th>
+                <th>Owner / Ver</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {docs.map(doc => (
                 <tr key={doc.id}>
-                  <td>#{doc.id}</td>
                   <td>
-                    <strong>{doc.title}</strong>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{doc.filename}</div>
+                    <strong>#{doc.id} — {doc.title}</strong>
+                    <div className="cell-sub">{doc.filename}</div>
                   </td>
+                  <td><span className="badge badge-indigo">{doc.role}</span></td>
+                  <td>{doc.chunk_count}</td>
                   <td>
-                    <span className="badge badge-indigo">{doc.role}</span>
-                  </td>
-                  <td>{doc.chunk_count} chunks</td>
-                  <td>
-                    <span className={`badge ${doc.status === 'active' ? 'badge-emerald' : 'badge-gray'}`}>
+                    <span className={`badge ${doc.status === 'active' ? 'badge-emerald' : doc.status === 'draft' ? 'badge-amber' : 'badge-gray'}`}>
                       {doc.status}
                     </span>
+                    {doc.review_after && <div className="cell-sub">review {doc.review_after.split('T')[0]}</div>}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '11px' }}
-                        onClick={() => handleToggleDoc(doc.id)}
-                      >
+                    <div>{doc.owner || '—'}</div>
+                    <div className="cell-sub">v{doc.version || 1}</div>
+                  </td>
+                  <td>
+                    <div className="row">
+                      {doc.status === 'draft' && (
+                        <button className="btn btn-sm btn-primary" onClick={() => handleApproveDoc(doc.id)}>Approve</button>
+                      )}
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleToggleDoc(doc.id)}>
                         {doc.status === 'active' ? 'Disable' : 'Enable'}
                       </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ padding: '4px 10px', fontSize: '11px' }}
-                        onClick={() => handleDeleteDoc(doc.id)}
-                      >
-                        Delete
-                      </button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDeleteDoc(doc.id)}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -201,46 +181,26 @@ export default function AdminCenter() {
         </div>
       </div>
 
-      {/* Quiz Feedback Table */}
-      <div className="glass-card">
-        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Learner Quiz Feedback & Audit Log</h3>
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">04</span>Learner feedback</h3>
+        </div>
         {feedbackList.length > 0 ? (
-          <div className="custom-table-container">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Question Prompt</th>
-                  <th>Reported Reason</th>
-                  <th>Learner Comments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {feedbackList.map(fb => (
-                  <tr key={fb.id}>
-                    <td style={{ whiteSpace: 'nowrap', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {fb.submitted_at?.split('T')[0]}
-                    </td>
-                    <td style={{ maxWidth: '350px' }}>
-                      <div style={{ fontSize: '13px', color: '#ffffff' }}>{fb.question_text}</div>
-                    </td>
-                    <td>
-                      <span className="badge badge-amber">{fb.reason}</span>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        {fb.feedback_text || 'No additional comment'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            {feedbackList.map(fb => (
+              <div key={fb.id} className="dir-row">
+                <div>
+                  <div>
+                    <div className="dir-main">{fb.question_text}</div>
+                    <div className="dir-sub">{fb.submitted_at?.split('T')[0]} · {fb.feedback_text || 'No comment'}</div>
+                  </div>
+                  <span className="badge badge-amber">{fb.reason}</span>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-            No question flags or accuracy feedback submitted by learners yet.
-          </div>
+          <p className="sub">No flags submitted yet.</p>
         )}
       </div>
     </div>

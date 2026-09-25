@@ -1,69 +1,72 @@
 import React from 'react';
 import './Sidebar.css';
-import { useAuth } from '../context/AuthContext';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
-  const { user, token } = useAuth();
-  const isAdmin = !!user?.is_admin && (token || '').startsWith('admin_token_');
-
-  const navigation = [
-    { section: 'Learner Workspace' },
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'pre-assessment', label: 'Pre-Assessment', icon: '📝' },
-    { id: 'learning-path', label: 'Learning Roadmap', icon: '🗺️' },
-    { id: 'qa', label: 'Knowledge Coach', icon: '💡' },
-    { id: 'quiz', label: 'Adaptive Quizzes', icon: '🎯' },
-    { id: 'scenarios', label: 'Applied Scenarios', icon: '🧩' },
-    { id: 'voice-resources', label: 'Voice & Resources', icon: '🎙️' },
-
-    { section: 'Management & Oversight' },
-    { id: 'manager', label: 'Team Readiness', icon: '👥' },
-    { id: 'admin', label: 'Knowledge Admin', icon: '⚙️' },
-    ...(isAdmin ? [{ id: 'admin-users', label: 'User Management', icon: '🔐' }] : [])
+export default function Sidebar({ activeTab, setActiveTab, isAdmin, collapsed, onToggle }) {
+  const learnerNav = [
+    { section: 'Learn' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'pre-assessment', label: 'Pre-Assessment' },
+    { id: 'learning-path', label: 'Learning Roadmap' },
+    { id: 'qa', label: 'Knowledge Coach' },
+    { id: 'quiz', label: 'Practice Quizzes' },
+    { id: 'scenarios', label: 'Applied Scenarios' },
   ];
 
+  const adminNav = [
+    { section: 'Manage' },
+    { id: 'admin-users', label: 'User Management' },
+    { id: 'admin', label: 'Knowledge Admin' },
+  ];
+
+  const managerNav = [
+    { section: 'Manage' },
+    { id: 'manager', label: 'Team Readiness' },
+    { id: 'admin', label: 'Knowledge Admin' },
+  ];
+
+  // Admins get the admin portal only — no learner content.
+  const navigation = isAdmin ? adminNav : [...learnerNav, ...managerNav];
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-brand">
-        <div className="brand-icon">🎓</div>
-        <div className="brand-info">
-          <h2>OnboardIQ</h2>
-          <span>Nexora Enterprise</span>
-        </div>
+        {!collapsed && (
+          <>
+            OnboardIQ<span className="brand-dot">.</span>
+            <span className="sub">Nexora</span>
+          </>
+        )}
+        {collapsed && <span>O<span className="brand-dot">.</span></span>}
+        <button className="collapse-btn" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand' : 'Collapse'}>
+          {collapsed ? '→' : '←'}
+        </button>
       </div>
 
       <nav className="sidebar-nav">
         {navigation.map((item, idx) => {
           if (item.section) {
-            return (
+            return collapsed ? null : (
               <div key={idx} className="nav-section-title">
                 {item.section}
               </div>
             );
           }
-
-          const isActive = activeTab === item.id;
           return (
             <div
               key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => setActiveTab(item.id)}
+              title={item.label}
             >
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
+              {collapsed ? item.label.charAt(0) : item.label}
             </div>
           );
         })}
       </nav>
 
       <div className="sidebar-footer">
-        <div className="footer-system-status">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="pulse-dot"></div>
-            <span>Adaptive Engine Online</span>
-          </div>
-          <span className="badge badge-indigo" style={{ padding: '2px 6px', fontSize: '10px' }}>v2.0</span>
-        </div>
+        <span>Adaptive engine</span>
+        <span>v2.0</span>
       </div>
     </aside>
   );

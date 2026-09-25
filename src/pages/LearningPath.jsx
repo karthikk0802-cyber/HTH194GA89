@@ -24,139 +24,107 @@ export default function LearningPath({ selectedRole, setActiveTab, setSelectedQu
   };
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <div className="spinner" style={{ width: '36px', height: '36px' }}></div>
-      </div>
-    );
+    return <span className="spinner spinner-lg" />;
   }
+
+  const weak = (pathData?.competencies || []).filter(
+    c => c.status === 'Needs-Review' || (c.mastery_score ?? 0) < 50
+  );
+
+  const reasons = {};
+  for (const r of pathData?.ranked_topics || []) reasons[r.topic_id] = r.reason;
 
   return (
     <div>
       <div className="page-header">
-        <div>
-          <h1>Adaptive Learning Roadmap</h1>
-          <p>Deterministic competency progression for <strong>{selectedRole}</strong> powered by prerequisite DAGs.</p>
-        </div>
+        <h1><span className="kicker">01</span>Roadmap</h1>
+        <p>{selectedRole} · ordered by prerequisites, not by guesswork.</p>
       </div>
 
-      {/* Hero Focus Topic */}
       {pathData?.today_focus && (
-        <div className="glass-card" style={{ marginBottom: '28px', borderLeft: '4px solid var(--primary)', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(17, 24, 39, 0.8) 100%)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-            <div>
-              <span className="badge badge-indigo" style={{ marginBottom: '8px' }}>TOP PRIORITY MODULE</span>
-              <h2 style={{ fontSize: '24px', marginTop: '6px' }}>
-                {pathData.today_focus.title || pathData.today_focus.topic_id.replace('_', ' ').toUpperCase()}
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '14px', maxWidth: '750px' }}>
-                💡 <strong>Why this topic now?</strong> {pathData.today_focus.reason}
-              </p>
-            </div>
-            <button
-              className="btn btn-primary"
-              style={{ padding: '12px 24px', fontSize: '15px' }}
-              onClick={() => handleStartPractice(pathData.today_focus.title || pathData.today_focus.topic_id)}
-            >
-              Start Module Practice →
+        <div className="section">
+          <div className="sec-head">
+            <h3><span className="idx">02</span>Up next</h3>
+            <button className="btn btn-sm btn-primary" onClick={() => handleStartPractice(pathData.today_focus.title || pathData.today_focus.topic_id)}>
+              Practice →
             </button>
           </div>
+          <p style={{ fontSize: '1.4rem', maxWidth: '30ch' }}>
+            {pathData.today_focus.title || pathData.today_focus.topic_id.replace('_', ' ')}
+          </p>
+          <p className="sub">{pathData.today_focus.reason}</p>
         </div>
       )}
 
-      {/* Competencies Grid */}
-      <h3 style={{ fontSize: '20px', marginBottom: '16px' }}>All Role Competencies</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        {pathData?.competencies?.map((comp) => {
-          const isCompleted = comp.status === 'Completed';
-          const isCurrent = comp.status === 'Current';
-          const isLocked = comp.status === 'Locked';
-
-          return (
-            <div
-              key={comp.topic_id}
-              className={`glass-card ${!isLocked ? 'interactive' : ''}`}
-              style={{
-                opacity: isLocked ? 0.65 : 1,
-                border: isCurrent ? '1px solid var(--border-active)' : '1px solid var(--border-subtle)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">03</span>Needs work</h3>
+          <span className="note">your stored weak areas</span>
+        </div>
+        {weak.length > 0 ? (
+          <div>
+            {weak.map((comp) => (
+              <div key={comp.topic_id} className="dir-row">
                 <div>
-                  <h4 style={{ fontSize: '17px', color: '#ffffff' }}>{comp.title}</h4>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {comp.prerequisites.length > 0 ? `Requires: ${comp.prerequisites.join(', ')}` : 'No Prerequisites (Foundation)'}
-                  </span>
-                </div>
-                <span className={`badge ${
-                  isCompleted ? 'badge-emerald' :
-                  isCurrent ? 'badge-indigo' :
-                  comp.status === 'Needs-Review' ? 'badge-amber' : 'badge-gray'
-                }`}>
-                  {comp.status}
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Mastery: {comp.difficulty}</span>
-                  <span style={{ fontWeight: 700 }}>{comp.mastery_score} / 100</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${comp.mastery_score}%`,
-                    height: '100%',
-                    background: comp.mastery_score >= 80 ? 'linear-gradient(90deg, #10b981, #059669)' :
-                                comp.mastery_score >= 50 ? 'linear-gradient(90deg, #6366f1, #8b5cf6)' :
-                                'linear-gradient(90deg, #f59e0b, #d97706)',
-                    borderRadius: '999px',
-                    transition: 'width 0.5s ease'
-                  }}></div>
+                  <div>
+                    <div className="dir-main">{comp.title}</div>
+                    <div className="dir-sub">{comp.status} · mastery {comp.mastery_score}/100</div>
+                  </div>
+                  <button className="btn btn-sm btn-secondary" onClick={() => handleStartPractice(comp.title)}>
+                    Practice →
+                  </button>
                 </div>
               </div>
-
-              {/* Action Button */}
-              <button
-                className={`btn ${isLocked ? 'btn-secondary' : 'btn-primary'}`}
-                style={{ width: '100%', padding: '8px', fontSize: '13px' }}
-                disabled={isLocked}
-                onClick={() => handleStartPractice(comp.title)}
-              >
-                {isLocked ? '🔒 Prerequisites Incomplete' : (isCompleted ? '🔄 Spaced Review Practice' : '⚡ Launch Quiz Practice')}
-              </button>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        ) : (
+          <p className="sub">No weak areas stored. Everything is at or above 50.</p>
+        )}
       </div>
 
-      {/* NetworkX Prerequisite Dependency Flow */}
-      <div className="glass-card">
-        <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Deterministic Competency Dependency Flow</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>
-          Prerequisite relations enforced by the NetworkX DAG engine:
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-          {pathData?.graph_edges?.map((edge, i) => (
-            <div
-              key={i}
-              style={{
-                padding: '8px 14px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px'
-              }}
-            >
-              <span style={{ color: '#a5b4fc', fontWeight: 600 }}>{edge.source_title}</span>
-              <span style={{ color: 'var(--text-muted)' }}>➔</span>
-              <span style={{ color: '#6ee7b7', fontWeight: 600 }}>{edge.target_title}</span>
-            </div>
-          ))}
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">04</span>All competencies</h3>
         </div>
+        <div>
+          {pathData?.competencies?.map((comp) => {
+            const isLocked = comp.status === 'Locked';
+            return (
+              <div key={comp.topic_id} className="dir-row">
+                <div>
+                  <div>
+                    <div className="dir-main">{comp.title}</div>
+                    <div className="dir-sub">
+                      {comp.prerequisites.length > 0 ? `Requires ${comp.prerequisites.join(', ')}` : 'Foundation'} · {comp.difficulty} · {comp.status} · {comp.mastery_score}/100{reasons[comp.topic_id] ? ` — ${reasons[comp.topic_id]}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    disabled={isLocked}
+                    onClick={() => handleStartPractice(comp.title)}
+                  >
+                    {isLocked ? 'Locked' : comp.status === 'Completed' ? 'Review →' : 'Practice →'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">04</span>Dependencies</h3>
+          <span className="note">prerequisite graph</span>
+        </div>
+        <p className="mono" style={{ fontSize: 13, lineHeight: 2.1 }}>
+          {pathData?.graph_edges?.map((edge, i) => (
+            <span key={i}>
+              {edge.source_title} <span style={{ color: 'var(--accent)' }}>→</span> {edge.target_title}
+              {i < pathData.graph_edges.length - 1 ? <><br /></> : null}
+            </span>
+          ))}
+        </p>
       </div>
     </div>
   );
