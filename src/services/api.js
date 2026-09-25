@@ -61,8 +61,8 @@ export const api = {
   generateQuiz: (topic, role = 'all', difficulty = 'Beginner') =>
     request(`/quiz/generate?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&difficulty=${encodeURIComponent(difficulty)}`),
 
-  startQuizSession: (topic, role = 'all', difficulty = 'Beginner', count = 20) =>
-    request(`/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}&difficulty=${encodeURIComponent(difficulty)}&count=${encodeURIComponent(count)}`),
+  startQuizSession: (topic, role = 'all', userId = '', count = 20, difficulty = null) =>
+    request(`/quiz/session?topic=${encodeURIComponent(topic)}&role=${encodeURIComponent(role)}${difficulty ? `&difficulty=${encodeURIComponent(difficulty)}` : ''}&count=${encodeURIComponent(count)}${userId ? `&userId=${encodeURIComponent(userId)}` : ''}`),
   
   submitQuiz: (userId, topicId, selectedAnswer, correctAnswer) =>
     request('/quiz/submit', {

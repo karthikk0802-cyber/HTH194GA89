@@ -16,7 +16,6 @@ const TOPIC_ID_MAP = {
 export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
   const { user, refreshProfile } = useAuth();
   const [topic, setTopic] = useState(selectedQuizTopic || 'Company Basics');
-  const [difficulty, setDifficulty] = useState('Beginner');
 
   const [session, setSession] = useState(null);
   const [sessIdx, setSessIdx] = useState(0);
@@ -63,7 +62,7 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
     setSessExplainAgain(null);
     setFeedbackSuccess(false);
     try {
-      const res = await api.startQuizSession(topic, selectedRole, difficulty, 20);
+      const res = await api.startQuizSession(topic, selectedRole, user?.username || '', 20);
       setSession(res);
     } catch (err) {
       alert('Failed to start session: ' + err.message);
@@ -153,16 +152,12 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
             </select>
           </div>
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label">Difficulty</label>
-            <select className="form-select" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-              <option value="Beginner">Beginner — foundations</option>
-              <option value="Intermediate">Intermediate — practitioner</option>
-              <option value="Expert">Expert — edge cases</option>
-            </select>
-          </div>
-          <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label">Role</label>
             <input type="text" disabled className="form-input" value={selectedRole} />
+          </div>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="input-label">Difficulty</label>
+            <input type="text" disabled className="form-input" value="Auto — set from your mastery" />
           </div>
         </div>
         <div className="mt">
@@ -174,7 +169,7 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
 
       {!session && !sessLoading && (
         <div className="section">
-          <p className="sub">Pick a topic and difficulty above. Each answer is checked instantly, with coaching when you miss.</p>
+          <p className="sub">Pick a topic above. Difficulty sets itself from your mastery of it. Each answer is checked instantly, with coaching when you miss.</p>
         </div>
       )}
 
@@ -182,7 +177,7 @@ export default function QuizPractice({ selectedRole, selectedQuizTopic }) {
         <div className="section">
           <div className="sec-head">
             <h3><span className="idx">03</span>Question {sessIdx + 1} of {session.questions.length}</h3>
-            <span className="note">Score {sessScore} · {topic} · {difficulty}</span>
+            <span className="note">Score {sessScore} · {topic} · {session.difficulty}{session.mastery != null ? ` (mastery ${session.mastery})` : ''}</span>
           </div>
           <div className="progress">
             <div style={{ width: `${(sessIdx / session.questions.length) * 100}%` }} />

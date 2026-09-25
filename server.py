@@ -546,10 +546,28 @@ def get_quiz_question(topic: str, role: Optional[str] = "all", difficulty: Optio
     return quiz
 
 @app.get("/api/quiz/session")
-def get_quiz_session(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = "Beginner", count: Optional[int] = 20, userId: Optional[str] = None):
-    """20-question no-repeat session. Single-question /api/quiz/generate untouched."""
+def get_quiz_session(topic: str, role: Optional[str] = "all", difficulty: Optional[str] = None, count: Optional[int] = 20, userId: Optional[str] = None):
+    """20-question no-repeat session. Difficulty auto-resolves from the user's
+    topic mastery when omitted (Beginner for new users). Single-question
+    /api/quiz/generate untouched."""
     from services.quiz_generator import generate_quiz_session
-    session = generate_quiz_session(topic, role=role or "all", difficulty=difficulty or "Beginner", count=count or 20)
+    resolved = difficulty or "Beginner"
+    mastery = 0
+    if difficulty is None and userId:
+        # Same key mapping the bank uses, so mastery lookup hits the right row.
+        from services.quiz_generator import _normalize_topic_key
+        db = SessionLocal()
+        try:
+            st = db.query(UserTopicState).filter(
+                UserTopicState.user_id == userId,
+                UserTopicState.topic_id == _normalize_topic_key(topic)
+            ).first()
+            mastery = effective_mastery(st.mastery_score, st.last_attempt_at) if st else 0
+            resolved = pick_difficulty(mastery)
+        finally:
+            db.close()
+    session = generate_quiz_session(topic, role=role or "all", difficulty=resolved, count=count or 20)
+    session["mastery"] = mastery
     for q in session["questions"]:
         q["validation_passed"] = validate_quiz_question(q, q.get("evidence_quote", ""))
     if userId:
