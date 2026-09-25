@@ -27,6 +27,10 @@ export default function LearningPath({ selectedRole, setActiveTab, setSelectedQu
     return <span className="spinner spinner-lg" />;
   }
 
+  const weak = (pathData?.competencies || []).filter(
+    c => c.status === 'Needs-Review' || (c.mastery_score ?? 0) < 50
+  );
+
   const reasons = {};
   for (const r of pathData?.ranked_topics || []) reasons[r.topic_id] = r.reason;
 
@@ -54,7 +58,33 @@ export default function LearningPath({ selectedRole, setActiveTab, setSelectedQu
 
       <div className="section">
         <div className="sec-head">
-          <h3><span className="idx">03</span>All competencies</h3>
+          <h3><span className="idx">03</span>Needs work</h3>
+          <span className="note">your stored weak areas</span>
+        </div>
+        {weak.length > 0 ? (
+          <div>
+            {weak.map((comp) => (
+              <div key={comp.topic_id} className="dir-row">
+                <div>
+                  <div>
+                    <div className="dir-main">{comp.title}</div>
+                    <div className="dir-sub">{comp.status} · mastery {comp.mastery_score}/100</div>
+                  </div>
+                  <button className="btn btn-sm btn-secondary" onClick={() => handleStartPractice(comp.title)}>
+                    Practice →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="sub">No weak areas stored. Everything is at or above 50.</p>
+        )}
+      </div>
+
+      <div className="section">
+        <div className="sec-head">
+          <h3><span className="idx">04</span>All competencies</h3>
         </div>
         <div>
           {pathData?.competencies?.map((comp) => {
